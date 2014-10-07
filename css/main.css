@@ -1,0 +1,21 @@
+body {
+
+}
+
+.centre {
+	text-align: center;
+}
+
+textarea {  /* position is inherited */
+    left: 0; 
+    top: 0; 
+    right: 0;
+    bottom: 100px;  /* Actually the height of select and input */
+    width: 100%;
+	border:0px;
+    box-shadow: none;
+    outline:0px /*!important;*/;
+    -webkit-appearance:none;
+    font-size: 20pt;
+    font-family: Courier New;
+}
