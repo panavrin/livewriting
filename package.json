@@ -1,0 +1,9 @@
+{
+  "name": "livewriting",
+  "version": "0.0.1",
+  "description": "live writing text area application",
+  "dependencies": {
+    "express": "^4.10.1",
+    "mime": "~1.2.7"
+  }
+}
