@@ -22,11 +22,8 @@ $(document).ready(function () {
         $("#reset").text("New");
     };
    
-
-    var lw = $("#livetext").lwtextarea({name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
-    //console.log(lw.name + " is ready.");
-    //console.log($(lw).name + " is ready2.");
-
+    $("#livetext").livewritingtextarea("create",{name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
+ 
     $("#postdata").button().css({ width: '150px', margin:'5px'}).click(function(){
          $('#post-message').bPopup({
             modalClose: false,
@@ -35,8 +32,8 @@ $(document).ready(function () {
             escClose :false
         });
         
-        $("#livetext").postData("/post",function(state, aid){
-        //    alert(state + ":" + aid);
+        $("#livetext").livewritingtextarea("post","/post",function(state, aid){
+
             $('#post-message').bPopup().close();
             articlelink = "http://localhost:9137?aid="+aid;
             $('#post-complete-message').bPopup({
@@ -53,13 +50,13 @@ $(document).ready(function () {
         });
         
     });
-     $("#reset").button().css({ width: '150px', margin:'5px'}).click(function(){
-            window.open(resetlink, '_self');
+    $("#reset").button().css({ width: '150px', margin:'5px'}).click(function(){
+        window.open(resetlink, '_self');
     });
 
     $("#start").button().css({ width: '150px', margin:'5px'}).click(function(){
         $('#initial-message').bPopup().close();
-        lw.resetTimer();
+        $("#livetext").livewritingtextarea("reset");
         $("#livetext").focus();
         $("#reset").show(); // hide the button if read mode 
     });
@@ -104,10 +101,11 @@ $(document).ready(function () {
             console.log(obj);
             $("#trigger").html('&lt;');
             obj.toggleClass(".left-shadow-overlay");
-            lw.focus();
+            $("#livetext").focus();
             obj.css({opacity:'0.5'});
         }
     });
+    
     $("#livetext").click(function(){
         slider.slideReveal("hide");
     });
