@@ -1,7 +1,7 @@
 /*jslint browser: true*/
 /*global $, jQuery, alert*/
 $(document).ready(function () {
-    var resetlink = "http://localhost:9137";
+    var resetlink = "http://livewriting.eecs.umich.edu";
     var aboutlink = resetlink + "?aid=aboutechobin";
 
     "use strict";
@@ -38,7 +38,7 @@ $(document).ready(function () {
         $("#livetext").postData("/post",function(state, aid){
         //    alert(state + ":" + aid);
             $('#post-message').bPopup().close();
-            articlelink = "http://localhost:9137?aid="+aid;
+            articlelink = resetlink+"?aid="+aid;
             $('#post-complete-message').bPopup({
                 modalClose: false,
                 opacity: 0.7,
