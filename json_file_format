@@ -1,0 +1,18 @@
+
+
+JSON_FILE_FOMRAT VERSION 0
+
+version : integer (0)
+writer : string (email)(optional)
+data :keystrokes data
+  p : type {keypress, mouseUp, cut, paste} 
+  t : timestamp (in millisec)
+  k : keycode
+  s : starting position of cursor (caret) 
+  e : ending positino of cursor (caret)
+  
+  
+  
+
+
+

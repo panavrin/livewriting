@@ -52,11 +52,7 @@ a:active {
     display:none;
 }
 textarea {  /* position is inherited */
-    left: 0; 
-    top: 0; 
-    right: 0;
-    bottom: 100px;  /* Actually the height of select and input */
-    width: 95%;
+     width: 95%;
     height : 90%;
     resize : none;
 	border: none;

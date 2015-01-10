@@ -95,35 +95,39 @@
             var pos = this.getCursorPosition();
             console.log("paste event :" + ev.clipboardData.getData('text/plain') + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
         }, 
-        playFunc= function(it, articleid){
-            it.focus();
-            console.log(it.name);
-            $.post("play", JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
-                console.log(it.name + "play response recieved:\n" + jqXHR.responseText);
-                var data=JSON.parse(jqXHR.responseText);
-                var currTime = (new Date()).getTime();
-                setTimeout(function(){
-                    it.triggerPlay(data,currTime,currTime);
-                },data[0]['t']);
-                var startTime = currTime + data[0]['t'];
-                console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']+ " currentData:",JSON.stringify(data[0]));
-
-            }, "text")
-            .fail(function( jqXHR, textStatus, errorThrown) {
-                alert( "play failed: " + jqXHR.responseText );
-            });
-        }, 
+         
         triggerPlayFunc =  function(data, startTime, prevTime){
             var it = this;
             var currentTime = (new Date()).getTime(), 
                 event = data[0];
                 
             // do somethign here!
-            
+            var selectionStart =event['s'];
+            var selectionEnd = event['e'];
+            // deal with selection 
+            if (selectionStart != selectionEnd){
+                // do selection
+                    // Chrome / Firefox
+
+                    if(typeof(tarea.selectionStart) != "undefined") {
+                        it.focus();
+                        it.selectionStart = selectionStart;
+                        it.selectionEnd = selectionEnd;
+                    }
+
+                    // IE
+                    if (document.selection && document.selection.createRange) {
+                        it.focus();
+                        it.select();
+                        var range = document.selection.createRange();
+                        it.collapse(true);
+                        it.moveEnd("character", selectionEnd);
+                        it.moveStart("character", selectionStart);
+                        it.select();
+                    }            
+            }
             if (event['p'] == "keypress"){
                 //IE support
-                var selectionStart =event['s'];
-                var selectionEnd = event['e'];
                 var myValue = String.fromCharCode(event['k']);
                 // IE support
                
@@ -148,9 +152,10 @@
                     }
                 }
             }
+            
             data.splice(0,1);
             if (data.length==0){
-            console.log("done at " + currentTime);
+                console.log("done at " + currentTime);
                 return;
             }
             var nextEventInterval = startTime + data[0]["t"] -  currentTime; 
@@ -161,80 +166,149 @@
         };
     
     $.fn.extend({
-        postData :function (url, respondFunc){
-            var it = $(this)[0];
-            if (it.liveWritingJsonData.length==0){
-                alert("I know you feel in vain but do not have anythign to store yet. ");
+    //    postData :function (url, respondFunc){
+      //      var it = $(this)[0];
+    //    },
+        livewritingtextarea: function (message, option1, option2) {
+            if (typeof(message) != "string"){
+                alert("livewriting textarea need a string message");
                 return;
             }
-            // Send the request
-            $.post(url, JSON.stringify(it.liveWritingJsonData), function(response, textStatus, jqXHR) {
-                var data=JSON.parse(jqXHR.responseText);
-                respondFunc(true, data["aid"]);
-                 $(window).onbeforeunload = false;
-
-            }, "text")
-            .fail(function(response, textStatus, jqXHR) {
-                                var data=JSON.parse(jqXHR.responseText);
-
-                respondFunc(false,data);
-            });
-        },
-        lwtextarea: function (options) {
-            var defaults = {
-                name: "Default live writing textarea",
-                startTime: null,
-                stateMouseDown: false, 
-                writeMode: null,
-                readMode:null
-            },
-            settings =  $.extend(defaults, options);
-            //Iterate over the current set of matched elements
             var it = $(this)[0];
             
-            it.name  = settings.name;
-            it.startTime = settings.startTime = (new Date()).getTime();
-            console.log("starting time:" + settings.startTime);
-            
-         //   it.postData = postFunc;
-            it.play = playFunc;
-            it.triggerPlay = triggerPlayFunc;
-            it.liveWritingJsonData = [];
-            it.resetTimer = function(){
+            if (it == null || typeof(it) == "undfined"){
+                alert("no object found for livewritingtexarea");
+            }
+
+            if (message =="reset"){
                 it.startTime = settings.startTime = (new Date()).getTime();
-            };
+            }
+            else if (message == "create"){
+                
+                if (typeof(option1) != "array" ||typeof(option1) != "undefined" ){
+                    alert
+                }
+                var defaults = {
+                    name: "Default live writing textarea",
+                    startTime: null,
+                    stateMouseDown: false, 
+                    writeMode: null,
+                    readMode:null,
+                    noDataMsg:"I know you feel in vain but do not have anythign to store yet. ",
+                    leaveWindowMsg:'You haven\'t finished your post yet. Do you want to leave without finishing?'
+                },
+                settings =  $.extend(defaults, option1);
+                //Iterate over the current set of matched elements
+
+                it.name  = settings.name;
+                it.startTime = settings.startTime = (new Date()).getTime();
+                console.log("starting time:" + settings.startTime);
+
+             //   it.postData = postFunc;
+                
+                it.triggerPlay = triggerPlayFunc;
+                it.liveWritingJsonData = [];
+              
+
+                //code to be inserted here
+                it.getCursorPosition = getCursorPosition;
+                if ($(this).length>1)
+                {
+                    alert("Please, have only one textarea in a page");
+                }
+                var aid = getUrlVar('aid');
+                if (aid){ // read mode
+                    this.livewritingtextarea("play",aid);
+                    it.writemode = false;
+                    if(settings.readMode != null)
+                        settings.readMode();
+                    // TODO handle user input? 
+                    //preventDefault ?
+                    //http://forums.devshed.com/javascript-development-115/stop-key-input-textarea-566329.html
+                }
+                else
+                {
+                    it.onkeyup = keyUpFunc;
+                    it.onkeypress = keyPressFunc;
+                    it.onmouseup = mouseUpFunc;
+                    it.onpaste = pasteFunc;
+                    it.oncut = cutFunc;
+                    it.writemode = true;
+                    if(settings.writeMode != null)
+                        settings.writeMode();
+                     $(window).onbeforeunload = function(){
+                        return setting.levaeWindowMsg;
+                    };
+                }
+            }
+            else if (message == "post"){
+                if(typeof(option1) != "string"){
+                    alert( "you have to specify url "+ option1);
+                    return;
+                }
+                
+                if(typeof(option2) != "function" || option2 == null){
+                    alert( "you have to specify a function that will run when server responded. "+ option2);
+                    return;
+                }
+                
+                var url = option1,
+                    respondFunc = option2;
+                
+                if (it.liveWritingJsonData.length==0){
+                    alert(settings.noDataMsg);
+                    return;
+                }
+
+                // see https://github.com/panavrin/livewriting/blob/master/json_file_format
+                var data = {};
+                data["version"] = 0;
+                data["data"] = it.liveWritingJsonData;
+                // Send the request
+                $.post(url, JSON.stringify(data), function(response, textStatus, jqXHR) {
+                    var data=JSON.parse(jqXHR.responseText);
+                    if (respondFunc)
+                        respondFunc(true, data["aid"]);
+                    $(window).onbeforeunload = false;
+
+                }, "text")
+                .fail(function(response, textStatus, jqXHR) {
+                                    var data=JSON.parse(jqXHR.responseText);
+
+                    if (respondFunc)
+                        respondFunc(false,data);
+                });
+            }
+            else if (message == "play"){
+                if (typeof(option1)!="string")
+                {
+                    alert("Unrecogniazble article id:"+aid);
+                    return;
+                }
+                var articleid = option1;
+                var it = $(this)[0];
+                it.focus();
+                console.log(it.name);
+                $.post("play", JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
+                    var json_file=JSON.parse(jqXHR.responseText);
+                    var version = json_file["version"];
+                    var data=json_file["data"];
+                    console.log(it.name + "play response recieved in version("+version+")\n" + jqXHR.responseText);
+
+                    var currTime = (new Date()).getTime();
+                    setTimeout(function(){
+                        it.triggerPlay(data,currTime,currTime);
+                    },data[0]['t']);
+                    var startTime = currTime + data[0]['t'];
+                    console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']+ " currentData:",JSON.stringify(data[0]));
+
+                }, "text")
+                .fail(function( jqXHR, textStatus, errorThrown) {
+                    alert( "play failed: " + jqXHR.responseText );
+                });
+            }
+            return;
             
-            //code to be inserted here
-            it.getCursorPosition = getCursorPosition;
-            if ($(this).length>1)
-            {
-                alert("Please, have only one textarea in a page");
-            }
-            var aid = getUrlVar('aid');
-            if (aid){ // read mode
-                it.play(it,aid);
-                it.writemode = false;
-                if(settings.readMode != null)
-                    settings.readMode();
-                // TODO handle user input? 
-             //preventDefault ?
-                //http://forums.devshed.com/javascript-development-115/stop-key-input-textarea-566329.html
-            }
-            else
-            {
-                it.onkeyup = keyUpFunc;
-                it.onkeypress = keyPressFunc;
-                it.onmouseup = mouseUpFunc;
-                it.onpaste = pasteFunc;
-                it.oncut = cutFunc;
-                it.writemode = true;
-                if(settings.writeMode != null)
-                    settings.writeMode();
-                 $(window).onbeforeunload = function(){
-                    return 'You haven\'t finished your post yet. Do you want to leave without finishing?';
-                };
-            }
-            return it;
         }
     });
 }(jQuery));
