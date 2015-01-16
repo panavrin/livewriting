@@ -2,8 +2,9 @@
 
 JSON_FILE_FOMRAT VERSION 0
 
-version : integer (0)
+version : integer (1)
 writer : string (email)(optional)
+playback : integer (1) // added at version 1 
 data :keystrokes data
   p : type {keypress, mouseUp, cut, paste} 
   t : timestamp (in millisec)
