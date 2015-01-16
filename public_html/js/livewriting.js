@@ -6,7 +6,7 @@
 (function ($) {
     "use strict";
      
-    var DEBUG = false,
+    var DEBUG = true,
         nonTypingKey={
         BACKSPACE:8,
         TAB:9,
@@ -161,7 +161,7 @@
             if(DEBUG)console.log("paste event :" + ev.clipboardData.getData('text/plain') + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
         }, 
          
-        triggerPlayFunc =  function(data, startTime, prevTime){
+        triggerPlayFunc =  function(data, startTime, prevTime,playback){
             var it = this;
             var currentTime = (new Date()).getTime(), 
                 event = data[0];
@@ -199,9 +199,7 @@
                var myValue = String.fromCharCode(keycode);
                 if (keycode ==nonTypingKey["BACKSPACE"]){// backspace
                     it.value = it.value.substring(0, selectionStart)
-                            + it.value.substring(selectionEnd+1, it.value.length);                           
-                    setCursorPosition(it, selectionStart, selectionStart);
-
+                            + it.value.substring(selectionEnd+1, it.value.length);                           setCursorPosition(it, selectionStart, selectionStart);
                 }
                 else if (keycode==nonTypingKey["LEFT_ARROW"]
                     ||keycode==nonTypingKey["RIGHT_ARROW"]
@@ -234,10 +232,10 @@
                 if(DEBUG)console.log("done at " + currentTime);
                 return;
             }
-            var nextEventInterval = startTime + data[0]["t"] -  currentTime; 
+            var nextEventInterval = startTime + data[0]["t"]/playback -  currentTime; 
             var actualInterval = currentTime - prevTime;
             if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
-            setTimeout(function(){it.triggerPlay(data,startTime,currentTime);}, nextEventInterval);
+            setTimeout(function(){it.triggerPlay(data,startTime,currentTime,playback);}, nextEventInterval);
 //              setTimeout(function(){self.triggerPlay(data,startTime);}, 1000);
         }, 
         createLiveWritingTextArea= function(it, options){
@@ -303,7 +301,8 @@
 
                 // see https://github.com/panavrin/livewriting/blob/master/json_file_format
                 var data = {};
-                data["version"] = 0;
+                data["version"] = 1;
+                data["playback"] = 1; // playback speed
                 data["data"] = it.liveWritingJsonData;
                 // Send the request
                 $.post(url, JSON.stringify(data), function(response, textStatus, jqXHR) {
@@ -326,12 +325,13 @@
             $.post("play", JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
                 var json_file=JSON.parse(jqXHR.responseText);
                 var version = json_file["version"];
+                var playback = (json_file["playback"]?json_file["playback"]:1);
                 var data=json_file["data"];
                 if(DEBUG)console.log(it.name + "play response recieved in version("+version+")\n" + jqXHR.responseText);
 
                 var currTime = (new Date()).getTime();
                 setTimeout(function(){
-                    it.triggerPlay(data,currTime,currTime);
+                    it.triggerPlay(data,currTime,currTime,playback);
                 },data[0]['t']);
                 var startTime = currTime + data[0]['t'];
                 if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']+ " currentData:",JSON.stringify(data[0]));
