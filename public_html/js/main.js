@@ -22,7 +22,8 @@ $(document).ready(function () {
         $("#postdata").hide(); // hide the button if read mode 
         $("#reset").text("New");
     };
-   
+  // $("#livetext").autogrow();
+
     $("#livetext").livewritingtextarea("create",{name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
  
     $("#postdata").button().css({ width: '150px', margin:'5px'}).click(function(){
@@ -32,7 +33,6 @@ $(document).ready(function () {
             positionStyle: 'absolute',
             escClose :false
         });
-        
         $("#livetext").livewritingtextarea("post","/post",function(state, aid){
 
             $('#post-message').bPopup().close();

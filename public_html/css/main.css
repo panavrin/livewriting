@@ -52,8 +52,9 @@ a:active {
     display:none;
 }
 textarea {  /* position is inherited */
-     width: 95%;
+     width: 100%;
     height : 90%;
+    padding: 30px;
     resize : none;
 	border: none;
     border-color:#777777    ;
