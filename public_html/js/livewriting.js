@@ -7,6 +7,11 @@
     "use strict";
      
     var DEBUG = false,
+        randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
+        keyup_debug_color_index=0,
+        keydown_debug_color_index=0,
+        keypress_debug_color_index=0,
+        mouseup_debug_color_index=0,
         nonTypingKey={
         BACKSPACE:8,
         TAB:9,
@@ -91,17 +96,20 @@
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
      //           keycode = getChar(ev),
                 index = this.liveWritingJsonData.length;
-            if (keycode==nonTypingKey["BACKSPACE"])
-                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-            else if (keycode==nonTypingKey["LEFT_ARROW"]
+            if (keycode==nonTypingKey["LEFT_ARROW"]
                     ||keycode==nonTypingKey["RIGHT_ARROW"]
                     ||keycode==nonTypingKey["UP_ARROW"]
                     ||keycode==nonTypingKey["DOWN_ARROW"])
                 this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-            if(DEBUG)console.log("key up:" + keycode );
+        //    if(DEBUG)console.log("key up:" + keycode );
             if(DEBUG){
                 $("#keyup_debug").html(keycode);
-                $("#keyup_debug").effect("highlight", {}, 500);
+                $("#start_up_debug").html(pos[0]);
+                $("#end_up_debug").html(pos[1]);
+                
+                keyup_debug_color_index++;
+                keyup_debug_color_index%=randomcolor.length;
+                $("#keyup_debug").css("background-color", randomcolor[keyup_debug_color_index]);
             }
         },
         keyDownFunc= function (ev) {
@@ -114,11 +122,18 @@
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
      //           keycode = getChar(ev),
                 index = this.liveWritingJsonData.length;
-         
+            if (keycode==nonTypingKey["BACKSPACE"])
+                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+
             if(DEBUG)console.log("key down:" + keycode );
             if(DEBUG){
                 $("#keydown_debug").html(keycode);
-                $("#keydown_debug").effect("highlight", {}, 500);
+                $("#start_down_debug").html(pos[0]);
+                $("#end_down_debug").html(pos[1]);
+                
+                keydown_debug_color_index++;
+                keydown_debug_color_index%=randomcolor.length;
+                $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
             }   
         },
         keyPressFunc= function (ev) {
@@ -135,33 +150,84 @@
             if(DEBUG)console.log("key pressed:" + keycode );
             if(DEBUG){
                 $("#keypress_debug").html(keycode);
-                $("#keypress_debug").effect("highlight", {}, 500);
-            }        
+                $("#start_press_debug").html(pos[0]);
+                $("#end_press_debug").html(pos[1]);
+                
+                
+                keypress_debug_color_index++;
+                keypress_debug_color_index%=randomcolor.length;
+                $("#keypress_debug").css("background-color", randomcolor[keypress_debug_color_index]);;            }        
         },
         mouseUpFunc = function (ev) {
             var timestamp = (new Date()).getTime()- this.startTime,
                 pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length;
+                index = this.liveWritingJsonData.length,
+                str = this.value.substr(pos[0], pos[1] - pos[0]);
             this.liveWritingJsonData[index] = {"p":"mouseUp", "t":timestamp, "s":pos[0], "e":pos[1]};
             if(DEBUG)console.log(this.name + " mouse pressed at (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
+            
+           // if(DEBUG)console.log("key pressed:" + keycode );
+            if(DEBUG){
+                $("#mouseup_debug").html(str);
+                $("#start_mouseup_debug").html(pos[0]);
+                $("#end_mouseup_debug").html(pos[1]);
+                mouseup_debug_color_index++;
+                mouseup_debug_color_index%=randomcolor.length;
+                $("#mouseup_debug").css("background-color", randomcolor[keypress_debug_color_index]);;            } 
         }, 
+        scrollFunc = function(ev){
+            var timestamp = (new Date()).getTime()- this.startTime,
+                index = this.liveWritingJsonData.length;
+              
+            if(DEBUG)console.log("scroll event :" + this.scrollTop + " time:" + timestamp);
+            this.liveWritingJsonData[index] = {"p":"scroll", "t":timestamp, "h":this.scrollTop, "s":0, "e":0};
+        },
+        dragStartFunc= function(ev){
+            var timestamp = (new Date()).getTime()- this.startTime,
+                pos = this.getCursorPosition(),
+                index = this.liveWritingJsonData.length,
+                str = this.value.substr(pos[0], pos[1] - pos[0]);
+                if(DEBUG)console.log("dragstart event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
+            this.dragAndDrop = !this.dragAndDrop;
+            this.dragStartPos = pos[0];
+            this.dragEndPos = pos[1];
+            
+        },
+        dragEndFunc =  function(ev){
+            var timestamp = (new Date()).getTime()- this.startTime,
+                pos = this.getCursorPosition(),
+                index = this.liveWritingJsonData.length,
+                str = this.value.substr(pos[0], pos[1] - pos[0]);
+                if(DEBUG)console.log("dragEnd event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
+                this.dragAndDrop = !this.dragAndDrop;
+                this.liveWritingJsonData[index] = {"p":"draganddrop", "t":timestamp, "r":str, "s":pos[0], "e":pos[1], "ds":this.dragStartPos , "de":this.dragEndPos };
+        },
+        dropFunc= function(ev){
+            var timestamp = (new Date()).getTime()- this.startTime,
+                pos = this.getCursorPosition(),
+                index = this.liveWritingJsonData.length,
+                str = this.value.substr(pos[0], pos[1] - pos[0]);
+                if(DEBUG)console.log("drop event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
+            if (!this.dragAndDrop)ev.preventDefault(); // disable drop from outside the textarea
+            
+        },
         cutFunc= function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime;
-            //var startPos = object.selectionStart;
-            //var endPos = object.selectionEnd;
-            var pos = this.getCursorPosition();
-            var str = this.value.substr(pos[0], pos[1] - pos[0]);
+            var timestamp = (new Date()).getTime()- this.startTime,
+                pos = this.getCursorPosition(),
+                index = this.liveWritingJsonData.length,
+                str = this.value.substr(pos[0], pos[1] - pos[0]);
+            this.liveWritingJsonData[index] = {"p":"cut", "t":timestamp, "r":str, "s":pos[0], "e":pos[1] };
             if(DEBUG)console.log("cut event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
         }, 
         pasteFunc =  function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime;
-            //var startPos = object.selectionStart;
-            //var endPos = object.selectionEnd;
-            var pos = this.getCursorPosition();
+             var timestamp = (new Date()).getTime()- this.startTime,
+                pos = this.getCursorPosition(),
+                index = this.liveWritingJsonData.length,
+                str = ev.clipboardData.getData('text/plain');
+            this.liveWritingJsonData[index] = {"p":"paste", "t":timestamp, "r":str, "s":pos[0], "e":pos[1] };
             if(DEBUG)console.log("paste event :" + ev.clipboardData.getData('text/plain') + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
         }, 
-         
-        triggerPlayFunc =  function(data, startTime, prevTime,playback){
+        triggerPlayFunc =  function(data, startTime, prevTime){
             var it = this;
             var currentTime = (new Date()).getTime(), 
                 event = data[0];
@@ -198,8 +264,20 @@
                var keycode = event['k'];
                var myValue = String.fromCharCode(keycode);
                 if (keycode ==nonTypingKey["BACKSPACE"]){// backspace
-                    it.value = it.value.substring(0, selectionStart)
-                            + it.value.substring(selectionEnd+1, it.value.length);                           setCursorPosition(it, selectionStart, selectionStart);
+                    if (it.version == 0){
+                        it.value = it.value.substring(0, selectionStart)
+                                    + it.value.substring(selectionEnd+1, it.value.length);                           
+                        setCursorPosition(it, selectionStart, selectionStart)
+                    }
+                    else{
+                        
+                        if ( selectionStart == selectionEnd){
+                            selectionStart--;
+                        }
+                        it.value = it.value.substring(0, selectionStart)
+                                + it.value.substring(selectionEnd, it.value.length);
+                        setCursorPosition(it, selectionStart, selectionStart)
+                    };
                 }
                 else if (keycode==nonTypingKey["LEFT_ARROW"]
                     ||keycode==nonTypingKey["RIGHT_ARROW"]
@@ -226,16 +304,43 @@
                 // put cursor at the place where you just added a letter. 
 
             }
+            else if (event['p'] == "cut"){
+                it.value = it.value.substring(0, selectionStart)
+                                + it.value.substring(selectionEnd, it.value.length);
+                setCursorPosition(it, selectionStart, selectionStart)
+            }else if (event['p'] == "paste"){
+                it.value = it.value.substring(0, selectionStart)
+                                +event['r']+ it.value.substring(selectionEnd, it.value.length);
+                setCursorPosition(it, selectionEnd + event['r'].length, selectionEnd + event['r'].length);
+            }
+            else if (event['p'] == "draganddrop"){
+                it.value = it.value.substring(0, event['ds'])
+                                + it.value.substring(event['de'], it.value.length);
+                
+                it.value = it.value.substring(0, selectionStart)
+                                +event['r']+ it.value.substring(selectionStart, it.value.length);
+                setCursorPosition(it, selectionStart, selectionEnd);
+            }
+            else if (event['p'] == "scroll"){
+                it.scrollTop = event['h']
+            }
             
             data.splice(0,1);
             if (data.length==0){
                 if(DEBUG)console.log("done at " + currentTime);
                 return;
             }
-            var nextEventInterval = startTime + data[0]["t"]/playback -  currentTime; 
+            var nextEventInterval = startTime + data[0]["t"]/it.playback -  currentTime; 
             var actualInterval = currentTime - prevTime;
             if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
-            setTimeout(function(){it.triggerPlay(data,startTime,currentTime,playback);}, nextEventInterval);
+          
+           if(it.selectionStart == it.selectionEnd) {
+              //it.scrollTop = it.scrollHeight;
+            //   var e = $.Event( "mouseup", { which: 1 } );
+               // Triggers it on the body.
+              // it.trigger(e);
+           }
+            setTimeout(function(){it.triggerPlay(data,startTime,currentTime);}, nextEventInterval);
 //              setTimeout(function(){self.triggerPlay(data,startTime);}, 1000);
         }, 
         createLiveWritingTextArea= function(it, options){
@@ -282,7 +387,12 @@
                     it.onmouseup = mouseUpFunc;
                     it.onpaste = pasteFunc;
                     it.oncut = cutFunc;
+                    it.onscroll = scrollFunc;
+                    it.ondragstart = dragStartFunc;
+                    it.ondragend = dragEndFunc;
+                    it.ondrop = dropFunc;
                     it.writemode = true;
+                    it.dragAndDrop = false;
                     if(settings.writeMode != null)
                         settings.writeMode();
                      $(window).onbeforeunload = function(){
@@ -291,7 +401,7 @@
                 }
             
                 if(DEBUG==true)
-                    $( "body" ).append("<div><table><tr><td>keyDown</td><td>keyPress</td><td>keyUp</td></tr><tr><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td></tr></table></div>");
+                    $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td></tr></table></div>");
         }, 
         postData = function(it, url, respondFunc){
             if (it.liveWritingJsonData.length==0){
@@ -324,17 +434,17 @@
             if(DEBUG)console.log(it.name);
             $.post("play", JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
                 var json_file=JSON.parse(jqXHR.responseText);
-                var version = json_file["version"];
-                var playback = (json_file["playback"]?json_file["playback"]:1);
+                it.version = json_file["version"];
+                it.playback = (json_file["playback"]?json_file["playback"]:1);
                 var data=json_file["data"];
-                if(DEBUG)console.log(it.name + "play response recieved in version("+version+")\n" + jqXHR.responseText);
+                if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" + jqXHR.responseText);
 
                 var currTime = (new Date()).getTime();
                 setTimeout(function(){
-                    it.triggerPlay(data,currTime,currTime,playback);
-                },data[0]['t']/playback);
-                var startTime = currTime + data[0]['t'];
-                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/playback+ " currentData:",JSON.stringify(data[0]));
+                    it.triggerPlay(data,currTime,currTime);
+                },data[0]['t']/it.playback);
+                var startTime = currTime + data[0]['t']/it.playback;
+                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/it.playback+ " currentData:",JSON.stringify(data[0]));
 
             }, "text")
             .fail(function( jqXHR, textStatus, errorThrown) {

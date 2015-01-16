@@ -6,4 +6,11 @@ Demo is available at http://livewriting.eecs.umich.edu
 
 Please contact snaglee@umich.edu for more detail. 
 
-# history 
+# history
+
+0.0.1 initial commit
+
+0.0.2 (Jan. 16 2015)
+* Arrow, selection backspace handled. 
+* Cut, Copy, Paste supported. 
+ 
