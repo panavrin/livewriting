@@ -6,7 +6,7 @@
 (function ($) {
     "use strict";
      
-    var DEBUG = true,
+    var DEBUG = false,
         nonTypingKey={
         BACKSPACE:8,
         TAB:9,
@@ -332,9 +332,9 @@
                 var currTime = (new Date()).getTime();
                 setTimeout(function(){
                     it.triggerPlay(data,currTime,currTime,playback);
-                },data[0]['t']);
+                },data[0]['t']/playback);
                 var startTime = currTime + data[0]['t'];
-                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']+ " currentData:",JSON.stringify(data[0]));
+                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/playback+ " currentData:",JSON.stringify(data[0]));
 
             }, "text")
             .fail(function( jqXHR, textStatus, errorThrown) {
