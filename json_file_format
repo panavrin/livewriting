@@ -8,7 +8,7 @@ playback : integer (1) // added at version 1
 data :keystrokes data
   p : type {keypress, mouseUp, cut, paste} 
   t : timestamp (in millisec)
-  k : charCode
+  k : charCode // changed from keycode to charCode at version 2
   s : starting position of cursor (caret) 
   e : ending positino of cursor (caret)
   
