@@ -107,7 +107,7 @@
      //           keycode = getChar(ev),
                 index = this.liveWritingJsonData.length;
             if (isCaretMovingKey(keycode))
-                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                this.liveWritingJsonData[index] = {"p":"keyup", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
         //    if(DEBUG)console.log("key up:" + keycode );
             if(DEBUG){
                 $("#keyup_debug").html(keycode);
@@ -130,11 +130,11 @@
      //           keycode = getChar(ev),
                 index = this.liveWritingJsonData.length;
             if (keycode==nonTypingKey["BACKSPACE"])
-                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                this.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
             else if (keycode==nonTypingKey["DELETE"])
-                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                this.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
             else if (isCaretMovingKey(keycode))
-                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                this.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
             
             if(DEBUG)console.log("key down:" + keycode );
             if(DEBUG){
@@ -269,11 +269,36 @@
             // deal with selection 
            if (event['p'] == "keypress"){
                 
-               var keycode = event['k'];
-               var charvalue = event['c'];
+                var keycode = event['k'];
+                var charvalue = event['c'];
                 if (it.version <= 1){
                     charvalue = String.fromCharCode(keycode);
                 }
+
+               if (charvalue != "undefined"){ // this is actual letter input
+                    
+                    //IE support
+                    if (document.selection) {
+                        it.focus();
+                        sel = document.selection.createRange();
+                        sel.text = charvalue;
+                    }else{
+                        it.value = it.value.substring(0, selectionStart)
+                            + charvalue
+                            + it.value.substring(selectionEnd, it.value.length);
+                    }
+                    setCursorPosition(it, selectionEnd+1, selectionEnd+1);
+                }
+                else{
+                   console.log("unreachable state occured!");
+                   if(DEBUG)
+                       alert("unreachable state occured!");
+                }
+                // put cursor at the place where you just added a letter. 
+
+            }
+            else if (event['p'] == "keyup" || event['p'] == "keydown"){
+                var keycode = event['k'];
 
                 if (keycode ==nonTypingKey["BACKSPACE"]){// backspace
                     if (it.version == 0){
@@ -302,29 +327,7 @@
                     // do nothing. 
                     setCursorPosition(it, selectionStart, selectionEnd);
                 }
-                else if (charCode != "undefined"){ // this is actual letter input
-                    
-                    //IE support
-                    if (document.selection) {
-                        it.focus();
-                        sel = document.selection.createRange();
-                        sel.text = charvalue;
-                    }else{
-                        it.value = it.value.substring(0, selectionStart)
-                            + charvalue
-                            + it.value.substring(selectionEnd, it.value.length);
-                    }
-                    setCursorPosition(it, selectionEnd+1, selectionEnd+1);
-                }
-               else{
-                   console.log("unreachable state occured!");
-                   if(DEBUG)
-                       alert("unreachable state occured!");
-               }
-                // put cursor at the place where you just added a letter. 
-
-            }
-            else if (event['p'] == "cut"){
+            }else if (event['p'] == "cut"){
                 it.value = it.value.substring(0, selectionStart)
                                 + it.value.substring(selectionEnd, it.value.length);
                 setCursorPosition(it, selectionStart, selectionStart)
