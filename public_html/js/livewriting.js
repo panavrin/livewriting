@@ -289,10 +289,35 @@
                     }
                     setCursorPosition(it, selectionEnd+1, selectionEnd+1);
                 }
-                else{
-                   console.log("unreachable state occured!");
-                   if(DEBUG)
-                       alert("unreachable state occured!");
+                if ( it.version <= 1) {
+                   if (keycode ==nonTypingKey["BACKSPACE"]  ){// backspace
+                        if (it.version == 0){
+                            it.value = it.value.substring(0, selectionStart)
+                                        + it.value.substring(selectionEnd+1, it.value.length);                           
+                            setCursorPosition(it, selectionStart, selectionStart)
+                        }
+                        else{
+                            if ( selectionStart == selectionEnd){
+                                selectionStart--;
+                            }
+                            it.value = it.value.substring(0, selectionStart)
+                                    + it.value.substring(selectionEnd, it.value.length);
+                            setCursorPosition(it, selectionStart, selectionStart)
+                        };
+                    }
+                    else if (keycode==nonTypingKey["DELETE"]){
+                        if ( selectionStart == selectionEnd){
+                            selectionEnd++;
+                        }
+                        it.value = it.value.substring(0, selectionStart)
+                            + it.value.substring(selectionEnd, it.value.length);
+                        setCursorPosition(it, selectionStart, selectionStart)
+                    }
+                    else if (isCaretMovingKey(keycode)){
+                        // do nothing. 
+                        setCursorPosition(it, selectionStart, selectionEnd);
+                    }
+                    
                 }
                 // put cursor at the place where you just added a letter. 
 
