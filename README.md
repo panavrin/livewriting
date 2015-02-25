@@ -13,4 +13,6 @@ Please contact snaglee@umich.edu for more detail.
 0.0.2 (Jan. 16 2015)
 * Arrow, selection backspace handled. 
 * Cut, Copy, Paste supported. 
- 
+* Playback speed added
+* drag and drop insdie textarea support
+* scroll added 

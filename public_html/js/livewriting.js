@@ -6,13 +6,13 @@
 (function ($) {
     "use strict";
      
-    var DEBUG = false,
+    var DEBUG = true,
         randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
         keyup_debug_color_index=0,
         keydown_debug_color_index=0,
         keypress_debug_color_index=0,
         mouseup_debug_color_index=0,
-        nonTypingKey={
+        nonTypingKey={// this keycode is from http://css-tricks.com/snippets/javascript/javascript-keycodes/
         BACKSPACE:8,
         TAB:9,
         ENTER:13,
@@ -86,6 +86,16 @@
             }
             return pos;
         },
+        isCaretMovingKey = function(keycode){
+            return (keycode == nonTypingKey["LEFT_ARROW"]
+                    ||keycode==nonTypingKey["RIGHT_ARROW"]
+                    ||keycode==nonTypingKey["UP_ARROW"]
+                    ||keycode==nonTypingKey["DOWN_ARROW"]
+                    ||keycode==nonTypingKey["HOME"]
+                    ||keycode==nonTypingKey["END"]
+                    ||keycode==nonTypingKey["PAGE_UP"]
+                    ||keycode==nonTypingKey["PAGE_DOWN"]);
+        },
         keyUpFunc= function (ev) {
             /*
             record keyCode, timestamp, cursor caret position. 
@@ -96,10 +106,7 @@
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
      //           keycode = getChar(ev),
                 index = this.liveWritingJsonData.length;
-            if (keycode==nonTypingKey["LEFT_ARROW"]
-                    ||keycode==nonTypingKey["RIGHT_ARROW"]
-                    ||keycode==nonTypingKey["UP_ARROW"]
-                    ||keycode==nonTypingKey["DOWN_ARROW"])
+            if (isCaretMovingKey(keycode))
                 this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
         //    if(DEBUG)console.log("key up:" + keycode );
             if(DEBUG){
@@ -124,7 +131,11 @@
                 index = this.liveWritingJsonData.length;
             if (keycode==nonTypingKey["BACKSPACE"])
                 this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-
+            else if (keycode==nonTypingKey["DELETE"])
+                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+            else if (isCaretMovingKey(keycode))
+                this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+            
             if(DEBUG)console.log("key down:" + keycode );
             if(DEBUG){
                 $("#keydown_debug").html(keycode);
@@ -143,17 +154,15 @@
            
             var timestamp = (new Date()).getTime() - this.startTime,
                 pos = this.getCursorPosition(),
+                charCode = String.fromCharCode(ev.charCode),
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
-     //           keycode = getChar(ev),
                 index = this.liveWritingJsonData.length;
-            this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-            if(DEBUG)console.log("key pressed:" + keycode );
+            this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "c":charCode, "s":pos[0], "e":pos[1] };
+            if(DEBUG)console.log("key pressed:" + charCode );
             if(DEBUG){
-                $("#keypress_debug").html(keycode);
+                $("#keypress_debug").html(keycode + "," + charCode);
                 $("#start_press_debug").html(pos[0]);
                 $("#end_press_debug").html(pos[1]);
-                
-                
                 keypress_debug_color_index++;
                 keypress_debug_color_index%=randomcolor.length;
                 $("#keypress_debug").css("background-color", randomcolor[keypress_debug_color_index]);;            }        
@@ -244,7 +253,6 @@
                         it.selectionStart = selectionStart;
                         it.selectionEnd = selectionEnd;
                     }
-
                     // IE
                     if (document.selection && document.selection.createRange) {
                         it.select();
@@ -262,7 +270,11 @@
            if (event['p'] == "keypress"){
                 
                var keycode = event['k'];
-               var myValue = String.fromCharCode(keycode);
+               var charvalue = event['c'];
+                if (it.version <= 1){
+                    charvalue = String.fromCharCode(keycode);
+                }
+
                 if (keycode ==nonTypingKey["BACKSPACE"]){// backspace
                     if (it.version == 0){
                         it.value = it.value.substring(0, selectionStart)
@@ -270,7 +282,6 @@
                         setCursorPosition(it, selectionStart, selectionStart)
                     }
                     else{
-                        
                         if ( selectionStart == selectionEnd){
                             selectionStart--;
                         }
@@ -279,28 +290,37 @@
                         setCursorPosition(it, selectionStart, selectionStart)
                     };
                 }
-                else if (keycode==nonTypingKey["LEFT_ARROW"]
-                    ||keycode==nonTypingKey["RIGHT_ARROW"]
-                    ||keycode==nonTypingKey["UP_ARROW"]
-                    ||keycode==nonTypingKey["DOWN_ARROW"]){
+                else if (keycode==nonTypingKey["DELETE"]){
+                    if ( selectionStart == selectionEnd){
+                        selectionEnd++;
+                    }
+                    it.value = it.value.substring(0, selectionStart)
+                        + it.value.substring(selectionEnd, it.value.length);
+                    setCursorPosition(it, selectionStart, selectionStart)
+                }
+                else if (isCaretMovingKey(keycode)){
                     // do nothing. 
                     setCursorPosition(it, selectionStart, selectionEnd);
-
                 }
-                else { // this is actual letter input
+                else if (charCode != "undefined"){ // this is actual letter input
                     
                     //IE support
                     if (document.selection) {
                         it.focus();
                         sel = document.selection.createRange();
-                        sel.text = myValue;
+                        sel.text = charvalue;
                     }else{
                         it.value = it.value.substring(0, selectionStart)
-                            + myValue
+                            + charvalue
                             + it.value.substring(selectionEnd, it.value.length);
                     }
                     setCursorPosition(it, selectionEnd+1, selectionEnd+1);
                 }
+               else{
+                   console.log("unreachable state occured!");
+                   if(DEBUG)
+                       alert("unreachable state occured!");
+               }
                 // put cursor at the place where you just added a letter. 
 
             }
@@ -411,7 +431,8 @@
 
                 // see https://github.com/panavrin/livewriting/blob/master/json_file_format
                 var data = {};
-                data["version"] = 1;
+                
+                data["version"] = 2;
                 data["playback"] = 1; // playback speed
                 data["data"] = it.liveWritingJsonData;
                 // Send the request
