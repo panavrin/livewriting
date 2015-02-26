@@ -6,7 +6,8 @@
 (function ($) {
     "use strict";
      
-    var DEBUG = true,
+    var DEBUG = false,
+        INSTANTPLAYBACK = false,
         randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
         keyup_debug_color_index=0,
         keydown_debug_color_index=0,
@@ -100,7 +101,7 @@
             /*
             record keyCode, timestamp, cursor caret position. 
             */
-           
+            //ev.trigger();
             var timestamp = (new Date()).getTime() - this.startTime,
                 pos = this.getCursorPosition(),
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
@@ -123,29 +124,30 @@
             /*
             record keyCode, timestamp, cursor caret position. 
             */
-           
-            var timestamp = (new Date()).getTime() - this.startTime,
-                pos = this.getCursorPosition(),
-                keycode = (ev.keyCode ? ev.keyCode : ev.which),
-     //           keycode = getChar(ev),
-                index = this.liveWritingJsonData.length;
-            if (keycode==nonTypingKey["BACKSPACE"])
-                this.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-            else if (keycode==nonTypingKey["DELETE"])
-                this.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-            else if (isCaretMovingKey(keycode))
-                this.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-            
-            if(DEBUG)console.log("key down:" + keycode );
-            if(DEBUG){
-                $("#keydown_debug").html(keycode);
-                $("#start_down_debug").html(pos[0]);
-                $("#end_down_debug").html(pos[1]);
-                
-                keydown_debug_color_index++;
-                keydown_debug_color_index%=randomcolor.length;
-                $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
-            }   
+        //    ev.preventDefault();
+            var keycode = (ev.keyCode ? ev.keyCode : ev.which),
+            that=this;
+            setTimeout(function(){
+                var timestamp = (new Date()).getTime() - that.startTime,
+                    pos = that.getCursorPosition(),
+         //           keycode = getChar(ev),
+                    index = that.liveWritingJsonData.length;
+                if (keycode==nonTypingKey["BACKSPACE"]|| keycode==nonTypingKey["DELETE"])
+                    that.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                else if (isCaretMovingKey(keycode))
+                    that.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+
+                if(DEBUG)console.log("key down:" + keycode );
+                if(DEBUG){
+                    $("#keydown_debug").html(keycode);
+                    $("#start_down_debug").html(pos[0]);
+                    $("#end_down_debug").html(pos[1]);
+
+                    keydown_debug_color_index++;
+                    keydown_debug_color_index%=randomcolor.length;
+                    $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
+                }  
+            }, 1);
         },
         keyPressFunc= function (ev) {
             /*
@@ -157,6 +159,9 @@
                 charCode = String.fromCharCode(ev.charCode),
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
                 index = this.liveWritingJsonData.length;
+            if(keycode == 13) charCode = "\n"; 
+            // I am not sure why carrige return would not work for string concatenation. 
+            // for example "1" + "\r" + "2" gives me "12" instead of "1\r2"
             this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "c":charCode, "s":pos[0], "e":pos[1] };
             if(DEBUG)console.log("key pressed:" + charCode );
             if(DEBUG){
@@ -276,8 +281,10 @@
                 }
 
                if (charvalue != "undefined"){ // this is actual letter input
-                    
+                 //   console.log("keycode:" + keycode + " charvalue:" + charvalue);
                     //IE support
+                    if(keycode == 13) charvalue = "\n"; // only happens for the stuff befroe version 2
+
                     if (document.selection) {
                         it.focus();
                         sel = document.selection.createRange();
@@ -376,6 +383,10 @@
             data.splice(0,1);
             if (data.length==0){
                 if(DEBUG)console.log("done at " + currentTime);
+                if (it.version >=3 && it.finaltext != it.value){
+                    console.log("There is discrepancy. Do something");
+                    if(DEBUG) alert("There is discrepancy. Do something" + it.finaltext +":"+ it.value);
+                }
                 return;
             }
             var nextEventInterval = startTime + data[0]["t"]/it.playback -  currentTime; 
@@ -388,6 +399,7 @@
                // Triggers it on the body.
               // it.trigger(e);
            }
+            if (INSTANTPLAYBACK) nextEventInterval =0;
             setTimeout(function(){it.triggerPlay(data,startTime,currentTime);}, nextEventInterval);
 //              setTimeout(function(){self.triggerPlay(data,startTime);}, 1000);
         }, 
@@ -460,9 +472,10 @@
                 // see https://github.com/panavrin/livewriting/blob/master/json_file_format
                 var data = {};
                 
-                data["version"] = 2;
+                data["version"] = 3;
                 data["playback"] = 1; // playback speed
                 data["data"] = it.liveWritingJsonData;
+                data["finaltext"] = it.value;
                 // Send the request
                 $.post(url, JSON.stringify(data), function(response, textStatus, jqXHR) {
                     var data=JSON.parse(jqXHR.responseText);
@@ -485,6 +498,7 @@
                 var json_file=JSON.parse(jqXHR.responseText);
                 it.version = json_file["version"];
                 it.playback = (json_file["playback"]?json_file["playback"]:1);
+                it.finaltext = (json_file["finaltext"]?json_file["finaltext"]:null);
                 var data=json_file["data"];
                 if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" + jqXHR.responseText);
 
