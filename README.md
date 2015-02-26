@@ -20,4 +20,5 @@ Please contact snaglee@umich.edu for more detail.
 0.0.3 (Feb. 26 2015)
 * Special characters supported
 * Carrige return problem resolved
-
+* keypress / keyup / keydown differentiated
+* keycode to charcode on keypress
