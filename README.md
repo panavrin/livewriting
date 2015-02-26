@@ -8,7 +8,11 @@ Please contact snaglee@umich.edu for more detail.
 
 # history
 
-0.0.1 initial commit
+0.0.3 (Feb. 26 2015)
+* Special characters supported
+* Carrige return problem resolved
+* keypress / keyup / keydown differentiated
+* keycode to charcode on keypress
 
 0.0.2 (Jan. 16 2015)
 * Arrow, selection backspace handled. 
@@ -17,8 +21,4 @@ Please contact snaglee@umich.edu for more detail.
 * drag and drop insdie textarea support
 * scroll added 
  
-0.0.3 (Feb. 26 2015)
-* Special characters supported
-* Carrige return problem resolved
-* keypress / keyup / keydown differentiated
-* keycode to charcode on keypress
+0.0.1 initial commit
