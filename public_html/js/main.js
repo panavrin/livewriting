@@ -17,7 +17,7 @@ $(document).ready(function () {
             positionStyle: 'absolute',
             escClose :false
         });
-        $("#postdata").show(); // hide the button if read mode 
+        $("#postdata").show(); // show the button if write mode 
     };
     var readModeFunc = function(){
         $("#postdata").hide(); // hide the button if read mode 
@@ -25,7 +25,7 @@ $(document).ready(function () {
     };
   // $("#livetext").autogrow();
 
-    $("#livetext").livewritingtextarea("create",{name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
+    $("#livetext").livewritingtextarea("create","textarea", {name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
  
     $("#postdata").button().css({ width: '150px', margin:'5px'}).click(function(){
          $('#post-message').bPopup({
@@ -45,7 +45,6 @@ $(document).ready(function () {
                 escClose :false
             });  
             
-           
             $("#post-link").text(articlelink);    
             ZeroClipboard.setData( "text/plain", articlelink);
 

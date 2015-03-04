@@ -21,6 +21,7 @@ padding:15px;
 	text-align: center;
 }
 
+
 a:link {
 color:inherit;
 text-decoration: none;
@@ -48,6 +49,8 @@ a:active {
     height: 10%;
     vertical-align: middle;
 }
+
+
 .hidden{
     display:none;
 }

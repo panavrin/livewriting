@@ -6,7 +6,7 @@
 (function ($) {
     "use strict";
      
-    var DEBUG = false,
+    var DEBUG = true,
         INSTANTPLAYBACK = false,
         randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
         keyup_debug_color_index=0,
@@ -102,13 +102,15 @@
             record keyCode, timestamp, cursor caret position. 
             */
             //ev.trigger();
-            var timestamp = (new Date()).getTime() - this.startTime,
-                pos = this.getCursorPosition(),
+            var timestamp = (new Date()).getTime() - this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
      //           keycode = getChar(ev),
-                index = this.liveWritingJsonData.length;
-            if (isCaretMovingKey(keycode))
-                this.liveWritingJsonData[index] = {"p":"keyup", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                index = this.lw_liveWritingJsonData.length;
+            if (keycode==nonTypingKey["BACKSPACE"]|| keycode==nonTypingKey["DELETE"])
+                this.lw_liveWritingJsonData[index] = {"p":"keyup", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+            else if (isCaretMovingKey(keycode))
+                this.lw_liveWritingJsonData[index] = {"p":"keyup", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
         //    if(DEBUG)console.log("key up:" + keycode );
             if(DEBUG){
                 $("#keyup_debug").html(keycode);
@@ -125,44 +127,46 @@
             record keyCode, timestamp, cursor caret position. 
             */
         //    ev.preventDefault();
-            var keycode = (ev.keyCode ? ev.keyCode : ev.which),
-            that=this;
-            setTimeout(function(){
-                var timestamp = (new Date()).getTime() - that.startTime,
-                    pos = that.getCursorPosition(),
-         //           keycode = getChar(ev),
-                    index = that.liveWritingJsonData.length;
-                if (keycode==nonTypingKey["BACKSPACE"]|| keycode==nonTypingKey["DELETE"])
-                    that.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
-                else if (isCaretMovingKey(keycode))
-                    that.liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+            var timestamp = (new Date()).getTime() - this.lw_startTime,
+                keycode = (ev.keyCode ? ev.keyCode : ev.which),
+                pos = this.lw_getCursorPosition(),
+     //           keycode = getChar(ev),
+                index = this.lw_liveWritingJsonData.length;
+            if (keycode==nonTypingKey["BACKSPACE"]|| keycode==nonTypingKey["DELETE"])
+                this.lw_liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+            else if (isCaretMovingKey(keycode)){ // for caret moving key, we want to know the position of the cursor after the event occurs. 
+                var that=this;
+                setTimeout(function(){
+                    var pos_temp = that.lw_getCursorPosition();
+                    that.lw_liveWritingJsonData[index] = {"p":"keydown", "t":timestamp, "k":keycode, "s":pos_temp[0], "e":pos_temp[1] };
+                },0);
+           }
+            if(DEBUG)console.log("key down:" + keycode );
+            if(DEBUG){
+                $("#keydown_debug").html(keycode);
+                $("#start_down_debug").html(pos[0]);
+                $("#end_down_debug").html(pos[1]);
 
-                if(DEBUG)console.log("key down:" + keycode );
-                if(DEBUG){
-                    $("#keydown_debug").html(keycode);
-                    $("#start_down_debug").html(pos[0]);
-                    $("#end_down_debug").html(pos[1]);
+                keydown_debug_color_index++;
+                keydown_debug_color_index%=randomcolor.length;
+                $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
+            }  
 
-                    keydown_debug_color_index++;
-                    keydown_debug_color_index%=randomcolor.length;
-                    $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
-                }  
-            }, 1);
         },
         keyPressFunc= function (ev) {
             /*
             record keyCode, timestamp, cursor caret position. 
             */
            
-            var timestamp = (new Date()).getTime() - this.startTime,
-                pos = this.getCursorPosition(),
+            var timestamp = (new Date()).getTime() - this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
                 charCode = String.fromCharCode(ev.charCode),
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
-                index = this.liveWritingJsonData.length;
+                index = this.lw_liveWritingJsonData.length;
             if(keycode == 13) charCode = "\n"; 
             // I am not sure why carrige return would not work for string concatenation. 
             // for example "1" + "\r" + "2" gives me "12" instead of "1\r2"
-            this.liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "c":charCode, "s":pos[0], "e":pos[1] };
+            this.lw_liveWritingJsonData[index] = {"p":"keypress", "t":timestamp, "k":keycode, "c":charCode, "s":pos[0], "e":pos[1] };
             if(DEBUG)console.log("key pressed:" + charCode );
             if(DEBUG){
                 $("#keypress_debug").html(keycode + "," + charCode);
@@ -173,11 +177,11 @@
                 $("#keypress_debug").css("background-color", randomcolor[keypress_debug_color_index]);;            }        
         },
         mouseUpFunc = function (ev) {
-            var timestamp = (new Date()).getTime()- this.startTime,
-                pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length,
+            var timestamp = (new Date()).getTime()- this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
+                index = this.lw_liveWritingJsonData.length,
                 str = this.value.substr(pos[0], pos[1] - pos[0]);
-            this.liveWritingJsonData[index] = {"p":"mouseUp", "t":timestamp, "s":pos[0], "e":pos[1]};
+            this.lw_liveWritingJsonData[index] = {"p":"mouseUp", "t":timestamp, "s":pos[0], "e":pos[1]};
             if(DEBUG)console.log(this.name + " mouse pressed at (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
             
            // if(DEBUG)console.log("key pressed:" + keycode );
@@ -190,58 +194,145 @@
                 $("#mouseup_debug").css("background-color", randomcolor[keypress_debug_color_index]);;            } 
         }, 
         scrollFunc = function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime,
-                index = this.liveWritingJsonData.length;
+            var timestamp = (new Date()).getTime()- this.lw_startTime,
+                index = this.lw_liveWritingJsonData.length;
               
             if(DEBUG)console.log("scroll event :" + this.scrollTop + " time:" + timestamp);
-            this.liveWritingJsonData[index] = {"p":"scroll", "t":timestamp, "h":this.scrollTop, "s":0, "e":0};
+            this.lw_liveWritingJsonData[index] = {"p":"scroll", "t":timestamp, "h":this.scrollTop, "s":0, "e":0};
         },
         dragStartFunc= function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime,
-                pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length,
+            var timestamp = (new Date()).getTime()- this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
+                index = this.lw_liveWritingJsonData.length,
                 str = this.value.substr(pos[0], pos[1] - pos[0]);
                 if(DEBUG)console.log("dragstart event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
-            this.dragAndDrop = !this.dragAndDrop;
-            this.dragStartPos = pos[0];
-            this.dragEndPos = pos[1];
+            this.lw_dragAndDrop = !this.lw_dragAndDrop;
+            this.lw_dragStartPos = pos[0];
+            this.lw_dragEndPos = pos[1];
             
         },
         dragEndFunc =  function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime,
-                pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length,
+            var timestamp = (new Date()).getTime()- this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
+                index = this.lw_liveWritingJsonData.length,
                 str = this.value.substr(pos[0], pos[1] - pos[0]);
                 if(DEBUG)console.log("dragEnd event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
                 this.dragAndDrop = !this.dragAndDrop;
-                this.liveWritingJsonData[index] = {"p":"draganddrop", "t":timestamp, "r":str, "s":pos[0], "e":pos[1], "ds":this.dragStartPos , "de":this.dragEndPos };
+                this.lw_liveWritingJsonData[index] = {"p":"draganddrop", "t":timestamp, "r":str, "s":pos[0], "e":pos[1], "ds":this.dragStartPos , "de":this.dragEndPos };
         },
         dropFunc= function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime,
-                pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length,
+            var timestamp = (new Date()).getTime()- this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
+                index = this.lw_liveWritingJsonData.length,
                 str = this.value.substr(pos[0], pos[1] - pos[0]);
                 if(DEBUG)console.log("drop event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
             if (!this.dragAndDrop)ev.preventDefault(); // disable drop from outside the textarea
             
         },
         cutFunc= function(ev){
-            var timestamp = (new Date()).getTime()- this.startTime,
-                pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length,
+            var timestamp = (new Date()).getTime()- this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
+                index = this.lw_liveWritingJsonData.length,
                 str = this.value.substr(pos[0], pos[1] - pos[0]);
-            this.liveWritingJsonData[index] = {"p":"cut", "t":timestamp, "r":str, "s":pos[0], "e":pos[1] };
+            this.lw_liveWritingJsonData[index] = {"p":"cut", "t":timestamp, "r":str, "s":pos[0], "e":pos[1] };
             if(DEBUG)console.log("cut event :" + str + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
         }, 
         pasteFunc =  function(ev){
-             var timestamp = (new Date()).getTime()- this.startTime,
-                pos = this.getCursorPosition(),
-                index = this.liveWritingJsonData.length,
+             var timestamp = (new Date()).getTime()- this.lw_startTime,
+                pos = this.lw_getCursorPosition(),
+                index = this.lw_liveWritingJsonData.length,
                 str = ev.clipboardData.getData('text/plain');
-            this.liveWritingJsonData[index] = {"p":"paste", "t":timestamp, "r":str, "s":pos[0], "e":pos[1] };
+            this.lw_liveWritingJsonData[index] = {"p":"paste", "t":timestamp, "r":str, "s":pos[0], "e":pos[1] };
             if(DEBUG)console.log("paste event :" + ev.clipboardData.getData('text/plain') + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
         }, 
-        triggerPlayFunc =  function(data, startTime, prevTime){
+        userInputFunc = function(options){ // this is only for codemirror
+            var it = this; // this should be editor
+            var timestamp = (new Date()).getTime()-it.lw_startTime,
+                index = it.lw_liveWritingJsonData.length;
+            it.lw_liveWritingJsonData[index] = {"p":"userinput", "t":timestamp, "d":options};
+        },
+        // the following function is for codemirror only.
+        changeFunc = function(cm, changeObject){
+             var  it = cm.getDoc().getEditor(); 
+            var timestamp = (new Date()).getTime()- it.lw_startTime,            
+                index = it.lw_liveWritingJsonData.length;
+            delete changeObject.removed; // to reduce data
+            it.lw_liveWritingJsonData[index] = {"p":"change", "t":timestamp, "d":changeObject};
+            it.lw_justAdded = true;
+            if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        },
+        // the following function is for codemirror only.
+        cursorFunc = function(cm){
+            
+            var it = cm.getDoc().getEditor();
+            if ( it.lw_justAdded ) {
+                it.lw_justAdded = false; // no need to store this since change record will guide us where to put cursor. 
+                return;
+            }
+            var fromPos = cm.getDoc().getCursor("from"),
+                toPos = cm.getDoc().getCursor("to");
+            var timestamp = (new Date()).getTime()- it.lw_startTime ,           
+                index = it.lw_liveWritingJsonData.length;
+            it.lw_liveWritingJsonData[index] = {"p":"cursor", "t":timestamp, "s":fromPos, "e":toPos};
+            
+            if(DEBUG)console.log("cursor event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        },
+        triggerPlayCodeMirrorFunc = function(data, startTime, prevTime){
+            var it = this;
+            var currentTime = (new Date()).getTime(), 
+                event = data[0];
+            it.getDoc().getEditor().focus();
+            if(DEBUG) console.log(JSON.stringify(event));
+            if (event['p'] == "change"){
+                var inputData    = event['d'];
+                var startLine = inputData['from']['line'],
+                    startCh = inputData['from']['ch'],
+                    endLine = inputData['from']['line'],
+                    endCh = inputData['from']['ch'],
+                    text = inputData['text'].join('\n'),
+                    inputType = inputData['origin '];
+                it.getDoc().setSelection(inputData['from'], inputData['to'], {scroll:true});
+                it.getDoc().replaceSelection(text);
+                
+            }
+            else if (event['p'] == "cursor"){
+                it.getDoc().setSelection(event['s'], event['e'], {scroll:true});
+            }
+            else if (event['p'] == "userinput"){
+                it.userInputRespond(event['d']);
+            }
+            data.splice(0,1);
+            if (data.length==0){
+                if(DEBUG)console.log("done at " + currentTime);
+                if (it.lw_type = "textarea"){
+                    if ( it.finaltext != it.value)
+                    {
+                        
+                        console.log("There is discrepancy. Do something");
+                        if(DEBUG) alert("There is discrepancy. Do something" + it.finaltext +":"+ it.value);
+                    }
+                }
+                else if ( it.lw_type == "codemirror")
+                {
+                    if ( it.finaltext != it.getValue())
+                    {
+                        
+                        console.log("There is discrepancy. Do something");
+                        if(DEBUG) alert("There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
+                    }
+                }
+                return;
+            }
+            // scheduling part 
+            var nextEventInterval = startTime + data[0]["t"]/it.lw_playback -  currentTime; 
+            var actualInterval = currentTime - prevTime;
+            if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
+          
+           
+            if (INSTANTPLAYBACK) nextEventInterval =0;
+            setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
+        },
+        triggerPlayTextareaFunc =  function(data, startTime, prevTime){
             var it = this;
             var currentTime = (new Date()).getTime(), 
                 event = data[0];
@@ -332,22 +423,17 @@
             else if (event['p'] == "keyup" || event['p'] == "keydown"){
                 var keycode = event['k'];
 
-                if (keycode ==nonTypingKey["BACKSPACE"]){// backspace
-                    if (it.version == 0){
-                        it.value = it.value.substring(0, selectionStart)
-                                    + it.value.substring(selectionEnd+1, it.value.length);                           
-                        setCursorPosition(it, selectionStart, selectionStart)
+                if (keycode ==nonTypingKey["BACKSPACE"]&& event['p'] == "keydown"){// backspace
+
+                    if ( selectionStart == selectionEnd){
+                        selectionStart--;
                     }
-                    else{
-                        if ( selectionStart == selectionEnd){
-                            selectionStart--;
-                        }
-                        it.value = it.value.substring(0, selectionStart)
-                                + it.value.substring(selectionEnd, it.value.length);
-                        setCursorPosition(it, selectionStart, selectionStart)
-                    };
+                    it.value = it.value.substring(0, selectionStart)
+                            + it.value.substring(selectionEnd, it.value.length);
+                    setCursorPosition(it, selectionStart, selectionStart)
+                    
                 }
-                else if (keycode==nonTypingKey["DELETE"]){
+                else if (keycode==nonTypingKey["DELETE"]&& event['p'] == "keydown"){
                     if ( selectionStart == selectionEnd){
                         selectionEnd++;
                     }
@@ -379,7 +465,9 @@
             else if (event['p'] == "scroll"){
                 it.scrollTop = event['h']
             }
-            
+            else if (event['p'] == "userinput"){
+                it.userInputRespond(event['d']);
+            }
             data.splice(0,1);
             if (data.length==0){
                 if(DEBUG)console.log("done at " + currentTime);
@@ -389,7 +477,7 @@
                 }
                 return;
             }
-            var nextEventInterval = startTime + data[0]["t"]/it.playback -  currentTime; 
+            var nextEventInterval = startTime + data[0]["t"]/it.lw_playback -  currentTime; 
             var actualInterval = currentTime - prevTime;
             if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
           
@@ -400,39 +488,40 @@
               // it.trigger(e);
            }
             if (INSTANTPLAYBACK) nextEventInterval =0;
-            setTimeout(function(){it.triggerPlay(data,startTime,currentTime);}, nextEventInterval);
+            setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
 //              setTimeout(function(){self.triggerPlay(data,startTime);}, 1000);
         }, 
-        createLiveWritingTextArea= function(it, options){
+        createLiveWritingTextArea= function(it, type, options){
                 var defaults = {
                     name: "Default live writing textarea",
                     startTime: null,
                     stateMouseDown: false, 
                     writeMode: null,
                     readMode:null,
-                    noDataMsg:"I know you feel in vain but do not have anythign to store yet. ",
+                    noDataMsg:"I know you feel in vain but do not have anything to store yet. ",
                     leaveWindowMsg:'You haven\'t finished your post yet. Do you want to leave without finishing?'
                 },
                 settings =  $.extend(defaults, options);
                 //Iterate over the current set of matched elements
-
-                it.name  = settings.name;
-                it.startTime = settings.startTime = (new Date()).getTime();
+                it.lw_type = type;
+                it.lw_name  = settings.name;
+                it.lw_startTime = settings.startTime = (new Date()).getTime();
                 if(DEBUG)console.log("starting time:" + settings.startTime);
-
-                
-                it.triggerPlay = triggerPlayFunc;
-                it.liveWritingJsonData = [];
+                if(type == "codemirror")
+                    it.lw_triggerPlay = triggerPlayCodeMirrorFunc;
+                else
+                    it.lw_triggerPlay = triggerPlayTextareaFunc;
+                it.lw_liveWritingJsonData = [];
               
 
                 //code to be inserted here
-                it.getCursorPosition = getCursorPosition;
+                it.lw_getCursorPosition = getCursorPosition;
                 
                 var aid = getUrlVar('aid');
                 if (aid){ // read mode
                     
                     playbackData(it, aid);     
-                    it.writemode = false;
+                    it.lw_writemode = false;
                     if(settings.readMode != null)
                         settings.readMode();
                     // TODO handle user input? 
@@ -441,30 +530,41 @@
                 }
                 else
                 {
-                    it.onkeyup = keyUpFunc;
-                    it.onkeypress = keyPressFunc;
-                    it.onkeydown = keyDownFunc
-                    it.onmouseup = mouseUpFunc;
-                    it.onpaste = pasteFunc;
-                    it.oncut = cutFunc;
-                    it.onscroll = scrollFunc;
-                    it.ondragstart = dragStartFunc;
-                    it.ondragend = dragEndFunc;
-                    it.ondrop = dropFunc;
-                    it.writemode = true;
-                    it.dragAndDrop = false;
+                   
+                    if ( type == "textarea"){
+                        it.onkeyup = keyUpFunc;
+                        it.onkeypress = keyPressFunc;
+                        it.onkeydown = keyDownFunc
+                        it.onmouseup = mouseUpFunc;
+                        it.onpaste = pasteFunc;
+                        it.oncut = cutFunc;
+                        it.onscroll = scrollFunc;
+                        it.ondragstart = dragStartFunc;
+                        it.ondragend = dragEndFunc;
+                        it.ondrop = dropFunc;
+                    }
+                    else if (type == "codemirror"){
+                        it.on("change", changeFunc);
+                        it.on("cursorActivity", cursorFunc);
+                    }
+                    
+                    it.onUserInput = userInputFunc;
+
+                    it.lw_writemode = true;
+                    it.lw_dragAndDrop = false;
                     if(settings.writeMode != null)
                         settings.writeMode();
                      $(window).onbeforeunload = function(){
                         return setting.levaeWindowMsg;
                     };
+                    
                 }
             
-                if(DEBUG==true)
+                if(DEBUG==true && it.lw_type=="textarea")
                     $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td></tr></table></div>");
         }, 
         postData = function(it, url, respondFunc){
-            if (it.liveWritingJsonData.length==0){
+            if (it.lw_liveWritingJsonData.length==0){
                     alert(settings.noDataMsg);
                     return;
                 }
@@ -474,8 +574,13 @@
                 
                 data["version"] = 3;
                 data["playback"] = 1; // playback speed
-                data["data"] = it.liveWritingJsonData;
-                data["finaltext"] = it.value;
+                data["editor_type"] = it.lw_type;
+                data["data"] = it.lw_liveWritingJsonData;
+            
+                if (it.lw_type == "textarea")
+                    data["finaltext"] = it.value;
+                else if (it.lw_type == "codemirror")
+                    data["finaltext"] = it.getValue();
                 // Send the request
                 $.post(url, JSON.stringify(data), function(response, textStatus, jqXHR) {
                     var data=JSON.parse(jqXHR.responseText);
@@ -493,21 +598,22 @@
         }, 
         playbackData = function(it,articleid){
             it.focus();
-            if(DEBUG)console.log(it.name);
+            if(DEBUG)console.log(it.lw_name);
             $.post("play", JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
                 var json_file=JSON.parse(jqXHR.responseText);
-                it.version = json_file["version"];
-                it.playback = (json_file["playback"]?json_file["playback"]:1);
-                it.finaltext = (json_file["finaltext"]?json_file["finaltext"]:null);
+                it.lw_version = json_file["version"];
+                it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
+                it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea 
+                it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:null);
                 var data=json_file["data"];
                 if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" + jqXHR.responseText);
 
                 var currTime = (new Date()).getTime();
                 setTimeout(function(){
-                    it.triggerPlay(data,currTime,currTime);
-                },data[0]['t']/it.playback);
-                var startTime = currTime + data[0]['t']/it.playback;
-                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/it.playback+ " currentData:",JSON.stringify(data[0]));
+                    it.lw_triggerPlay(data,currTime,currTime);
+                },data[0]['t']/it.lw_playback);
+                var startTime = currTime + data[0]['t']/it.lw_playback;
+                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(data[0]));
 
             }, "text")
             .fail(function( jqXHR, textStatus, errorThrown) {
@@ -521,30 +627,44 @@
       //      var it = $(this)[0];
     //    },
         livewritingtextarea: function (message, option1, option2) {
+            var it;
+            if ($(this).length==1){
+                it = $(this)[0];
+            }
+            else if ($(this) == Object){
+                it = this;
+            }
+            
             if (typeof(message) != "string"){
                 alert("livewriting textarea need a string message");
-                return;
+                return it;
             }
-            var it = $(this)[0];
             
             if (it == null || typeof(it) == "undfined"){
                 alert("no object found for livewritingtexarea");
             }
 
             if (message =="reset"){
-                it.startTime =  (new Date()).getTime();
+                it.lw_startTime =  (new Date()).getTime();
             }
             else if (message == "create"){
                 
-                if (typeof(option1) != "array" ||typeof(option1) != "undefined" ){
-                    alert
+                if (typeof(option2) != "object" &&typeof(option2) != "undefined" ){
+                    alert("the 3rd argument should be the options array.");
+                    return it;
+                }
+                if ( option1 != "textarea" && option1 != "codemirror"){
+                    alert("Creating live writing text area only supports either textarea or codemirror. ");
+                    return it;
                 }
                 if ($(this).length>1)
                 {
                     alert("Please, have only one textarea in a page");
+                    return it;
                 }
-                createLiveWritingTextArea(it, option1);
-                
+                createLiveWritingTextArea(it, option1, option2);
+
+                return it;
             }
             else if (message == "post"){
                 if(typeof(option1) != "string"){
@@ -572,8 +692,18 @@
                 }
                 
                 var articleid = option1;
-                var it = $(this)[0];
                 playbackData(it, articleid);
+            }
+            else if (message == "userinput"){
+// option1 
+                it.onUserInput(option1);
+            }
+            else if (message == "register"){
+                if(typeof(option1) != "function" || option1 == null){
+                    alert( "you have to specify a function that will run when user-input is done"+ option1);
+                    return;
+                }
+                it.userInputRespond = option1
             }
             return;
             
