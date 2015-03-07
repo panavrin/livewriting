@@ -51,13 +51,15 @@
         .CodeMirror {
             border: 1px solid black; 
             font-size:13px;
-            opacity:0.5;
+            opacity:0.8;
+            height:100%;
         }
     
         .body{
             margin:50px;
             width: 90%;
-            height: 100%;
+            height:90%;
+
             position: absolute;
             top: 0;
             left: 0;
@@ -65,48 +67,23 @@
 </style>
 <script src="./js/gibber.lib.min.js"></script>
 <div class="body">
-<h2>Theme Demo</h2>
+<h2>Gibber - Live Writing Demo</h2>
+<textarea id="code" name="code"></textarea>
 <div>
-<form><textarea id="code" name="code"></textarea></form>
-</div>
-
-<p>Select a theme: <select id=select>
-    <option selected>default</option>
-    <option>3024-day</option>
-    <option>3024-night</option>
-    <option>ambiance</option>
-    <option>base16-dark</option>
-    <option>base16-light</option>
-    <option>blackboard</option>
-    <option>cobalt</option>
-    <option>colorforth</option>
-    <option>eclipse</option>
-    <option>elegant</option>
-    <option>erlang-dark</option>
-    <option>lesser-dark</option>
-    <option>mbo</option>
-    <option>mdn-like</option>
-    <option>midnight</option>
-    <option>monokai</option>
-    <option>neat</option>
-    <option>neo</option>
-    <option>night</option>
-    <option>paraiso-dark</option>
-    <option>paraiso-light</option>
-    <option>pastel-on-dark</option>
-    <option>rubyblue</option>
-    <option>solarized dark</option>
-    <option>solarized light</option>
-    <option>the-matrix</option>
-    <option>tomorrow-night-bright</option>
-    <option>tomorrow-night-eighties</option>
-    <option>twilight</option>
-    <option>vibrant-ink</option>
-    <option>xq-dark</option>
-    <option>xq-light</option>
-    <option>zenburn</option>
-</select>
+    
+<p></p>
+<p>
+        Ctrl+Enter : Execute selected block or single line of code, where the cursor is. 
 </p>
+    <p>
+Shift+Ctrl+Enter : Execute selected block or single line of code at the start of the next measure
+    </p>
+    <p>
+        Ctrl+.: Clear all existing audio, visuals and interfaces.
+            </p>
+    
+ 
+        </div>
 
 <div class = "buttons">
     <button id = "post">Post</button> 

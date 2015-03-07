@@ -11,6 +11,9 @@ $(document).ready(function () {
         matchBrackets: true, 
         
     });
+    
+    editor.setSize("100%", "60%");
+    
     editor.livewritingtextarea = $.fn.livewritingtextarea;
     editor.livewritingtextarea("create", "codemirror");
     
@@ -28,24 +31,42 @@ $(document).ready(function () {
             ZeroClipboard.setData( "text/plain", articlelink);
         });
     });
-    var choice = document.location.search &&
-           decodeURIComponent(document.location.search.slice(1));
     
-    if (choice) {
-        input.value = choice;
-        editor.setOption("theme", choice);
-    }
     
-    var evalSelection = function(){
+    
+    var evalSelection = function(option){
         var selectedCode = editor.getSelection();
-        eval(selectedCode);
+        
+        if (selectedCode == ''){
+            //alert('no selection');
+            selectedCode = editor.getLine(editor.getCursor().line);
+        }
+        if (option.delay){
+            try {
+                Gibber.Clock.codeToExecute.push({code:selectedCode});
+            } catch (e) {
+                 
+            }
+        }
+        else{
+            try {
+                eval(selectedCode);
+            } catch (e) {
+                
+            }
+        }
     }
     
-    var evalAndStore = function(){
-        editor.livewritingtextarea("userinput",{"type":"eval"});
-        evalSelection();
+    var evalAndStoreNow = function(){
+        var option = {"type":"eval", delay:false};
+        editor.livewritingtextarea("userinput",option);
+        evalSelection(option);
     }
-    
+    var evalAndStoreAtNM = function(){
+        var option = {"type":"eval", delay:true};
+        editor.livewritingtextarea("userinput",option);
+        evalSelection(option);
+    }
     var clearAndStore = function(){
         editor.livewritingtextarea("userinput",{"type":"clear"});
         eval("Gibber.clear();");
@@ -54,7 +75,8 @@ $(document).ready(function () {
     editor.livewritingtextarea("register", evalSelection);
     
     editor.setOption("extraKeys", {
-      "Ctrl-Enter": evalAndStore,
+      "Ctrl-Enter": evalAndStoreNow,
+      "Shift-Ctrl-Enter": evalAndStoreAtNM,
       "Ctrl-.": clearAndStore
     });
     
