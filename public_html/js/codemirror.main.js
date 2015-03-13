@@ -1,6 +1,11 @@
  
 
 $(document).ready(function () {
+    var resetlink = "http://localhost:2401/gibber.html";
+   // var resetlink = "http://livewriting.eecs.umich.edu:2401/gibber.html";
+   /// var resetlink = "http://livewriting.eecs.umich.edu/gibber.html";
+    var demolink = resetlink + "?aid=OKDMWHgkDCdAmA";
+
     function cursorAct(cm){
         console.log("cursorAct : " + cm.getSelection());
     }
@@ -14,25 +19,75 @@ $(document).ready(function () {
     
     editor.setSize("100%", "60%");
     
+    var writeModeFunc = function(){
+         $('#initial-message').bPopup({
+            modalClose: false,
+            opacity: 0.7,
+            positionStyle: 'absolute',
+            escClose :false
+        });
+        $("#post").show(); // show the button if write mode 
+    };
+    
+    var readModeFunc = function(){
+        $("#post").hide(); // hide the button if read mode 
+    //    $("#reset").text("New");
+    };
+    
+     $(".about").button().css({ width: '150px', margin:'5px'}).click(function(){
+        var windowObjectReference = window.open(demolink,"win1");
+    });
+    
     editor.livewritingtextarea = $.fn.livewritingtextarea;
-    editor.livewritingtextarea("create", "codemirror");
+    editor.livewritingtextarea("create", "codemirror", {name: "Sang's first run in Gibber",   writeMode:writeModeFunc, readMode:readModeFunc});
     
-    var input = document.getElementById("select");
-    var selectTheme = function () {
-        var theme = input.options[input.selectedIndex].innerHTML;
-        editor.setOption("theme", theme);
-    }
+
+    $("#start").button().css({ width: '150px', margin:'5px'}).click(function(){
+        $('#initial-message').bPopup().close();
+        editor.livewritingtextarea("reset");
+        editor.focus();
+    });
     
-    $("#select").on("change", selectTheme);
-    $("#post").button().click(function(){
+    $("#new").button().css({ width: '150px', margin:'5px'}).click(function(){
+        window.open(resetlink, '_self');
+    });
+
+    var client = new ZeroClipboard($("#copytoclipboard"));
+    client.on( "aftercopy", function( event ) {
+        alert("Copied text to clipboard: " + event.data["text/plain"] );
+    } );
+
+    $("#copytoclipboard").button().css({width:'250px', margine:'5px'});
+    
+    $("#play").button().css({ width: '150px', margin:'5px'}).click(function(){
+        var windowObjectReference = window.open(articlelink,"win2");
+    });
+    $("#close").button().css({ width: '150px', margin:'5px'}).click(function(){
+        $('#post-complete-message').bPopup().close();
+    });
+    
+    $("#post").button().css({ width: '150px', margin:'5px'}).click(function(){
+         $('#post-message').bPopup({
+            modalClose: false,
+            opacity: 0.7,
+            positionStyle: 'absolute',
+            escClose :false
+        });
+        
         editor.livewritingtextarea("post","/post",function(state, aid){
-            articlelink = aid;
-            alert("posted:" + articlelink);
+           $('#post-message').bPopup().close();
+            articlelink = resetlink+"?aid="+aid;
+            $('#post-complete-message').bPopup({
+                modalClose: false,
+                opacity: 0.7,
+                positionStyle: 'absolute',
+                escClose :false
+            });  
+            $("#post-link").text(articlelink);    
+
             ZeroClipboard.setData( "text/plain", articlelink);
         });
     });
-    
-    
     
     var evalSelection = function(option){
         var selectedCode = editor.getSelection();
@@ -59,16 +114,18 @@ $(document).ready(function () {
     
     var evalAndStoreNow = function(){
         var option = {"type":"eval", delay:false};
-        editor.livewritingtextarea("userinput",option);
+        if(editor.lw_writemode)editor.livewritingtextarea("userinput",option);
         evalSelection(option);
     }
+    
     var evalAndStoreAtNM = function(){
         var option = {"type":"eval", delay:true};
-        editor.livewritingtextarea("userinput",option);
+        if(editor.lw_writemode)livewritingtextarea("userinput",option);
         evalSelection(option);
     }
+    
     var clearAndStore = function(){
-        editor.livewritingtextarea("userinput",{"type":"clear"});
+        if(editor.lw_writemode)editor.livewritingtextarea("userinput",{"type":"clear"});
         eval("Gibber.clear();");
     }
     
