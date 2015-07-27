@@ -1,0 +1,242 @@
+
+<html>
+  <head>
+    <title>Example 7 : Temporal Typography</title>
+    <link rel="stylesheet" type="text/css" href="../css/main.css"/>
+      <link rel="stylesheet" type="text/css" href="../css/jquery-ui.min.css"/>
+      <script id="vertex0" type="text/x-glsl-vert">
+      uniform float volume;
+      varying vec2 vUv;
+  
+      void main() {
+        vec4 fpos = vec4( position, 1.0 );
+        vec4 mvPosition = modelViewMatrix * fpos;
+        vec4 p = projectionMatrix * mvPosition;
+        vUv = uv;
+        gl_Position = p;
+      }
+    </script>
+      <script id="fragment0" type="text/x-glsl-frag">
+      varying vec2 vUv;
+      uniform sampler2D map;
+      void main() {
+        vec4 diffuse = texture2D(map, vUv);
+        //gl_FragColor = mix(diffuse, vec4(1.0,0,0,1), 0.5);
+        gl_FragColor = diffuse;
+      }
+    </script>
+<script id="vertex1" type="text/x-glsl-vert">
+    varying vec2 vUv;
+    uniform float rightMostXCoord;
+    uniform float timeDomain[512];
+
+    void main() {
+        float xCoord = position.x/rightMostXCoord;
+        vec4 fpos = vec4( position, 1.0 );
+        fpos.y = fpos.y + timeDomain[int(xCoord*250.0)] * 20.0;
+        vec4 p = projectionMatrix * modelViewMatrix * fpos;
+        vUv = uv;
+        gl_Position = p;
+        //      index = 20.0;
+    }
+</script>
+      <script id="fragment1" type="text/x-glsl-frag">
+      varying vec2 vUv;
+   //     varying float index;
+
+     // varying float xCoord;
+      uniform sampler2D map;
+     // int index2 = 20;
+      void main() {
+        vec2 uv = vUv;
+        //uv.y = uv.y + sin(tan(uv.x) * 1000.0)*0.01 * volume2 + sin(uv.x * 2000.0)*0.001 * volume2;
+       //         uv.y = uv.y + timeDomain[i];
+        
+    //uv.x = uv.x + sin(tan(uv.y) * 1000.0)*0.02 * volume2+ sin(uv.x * 2000.0)*0.01 * volume2;
+        vec4 diffuse = texture2D(map, uv);
+        gl_FragColor = diffuse;
+      }
+    </script>
+      
+<script id="vertex2" type="text/x-glsl-vert">
+      varying vec2 vUv;
+    //  varying float xCoord;
+      uniform float rightMostXCoord;
+      uniform float time;
+          uniform float timeDomain[512];
+
+    //  varying float index;
+    attribute float strIndex;
+         uniform float interval;
+         
+         mat3 rotateAngleAxisMatrix(float angle, vec3 axis) {
+        float c = cos(angle);
+        float s = sin(angle);
+        float t = 1.0 - c;
+        axis = normalize(axis);
+        float x = axis.x, y = axis.y, z = axis.z;
+        return mat3(
+          t*x*x + c,    t*x*y + s*z,  t*x*z - s*y,
+          t*x*y - s*z,  t*y*y + c,    t*y*z + s*x,
+          t*x*z + s*y,  t*y*z - s*x,  t*z*z + c
+        );
+      }
+
+      void main() {
+  /*      vec3 corner = vec3(floor(position.x/1.0)*1.0, floor(position.y/1.0)*1.0, 0.0);
+        vec3 mid = corner + vec3(0.5, 0.5, 0.0);
+        vec3 rpos = rotateAngleAxis(strIndex+time, vec3(mod(strIndex,16.0), -8.0+mod(strIndex,15.0), 1.0), position ) ;
+        *///vec4 fpos = vec4( mix(position,rpos,interval), 1.0 );
+        vec4 fpos = vec4(position,1.0);
+      //  fpos.x += -35.0;
+        float xCoord = position.x/rightMostXCoord;
+        fpos.y = fpos.y + timeDomain[int(xCoord*250.0)] * 24.0;
+        float speed = 1.0-exp(-time*0.003);
+        fpos.z += ((sin(strIndex+time*2.0)))*(speed) * 1.0;
+        fpos.y += ((cos(strIndex+time*2.0)))*(speed)* 1.0;
+        vec4 mvPosition = modelViewMatrix * fpos;
+        mvPosition.y += 1.0*sin(time*0.5+mvPosition.x/25.0)*(speed);
+        mvPosition.x -= 1.0*cos(time*0.5+mvPosition.y/25.0)*(speed);
+        vec4 p = projectionMatrix * mvPosition;
+        vUv = uv;
+        gl_Position = p;
+      }
+    </script>
+      <script id="fragment2" type="text/x-glsl-frag">
+      varying vec2 vUv;
+       uniform float interval;
+      uniform sampler2D map;
+      uniform float noise;
+      uniform float time;
+
+     // int index2 = 20;
+      void main() {
+        vec2 uv = vUv;
+
+        uv.y = uv.y + sin(uv.x  * 1000.0 * time)* noise ;//+ sin(uv.x * 2000.0)*0.001 * volume2;
+        uv.x = uv.x + cos(tan(uv.y)  * 1000.0 * time)* noise ;
+        vec4 diffuse = texture2D(map, uv);
+       /*  vec4 diffuse_white = diffuse;
+        //vec4 diffuse_green = diffuse;
+        //vec4 diffuse_blue = diffuse;
+        diffuse_white.r = 1.0;
+        diffuse_white.g = 1.0;
+        diffuse_white.b = 1.0;
+        
+        vec4 mix_diffuse = mix(diffuse, diffuse_white,0.5-interval/2.0);
+
+        gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
+        gl_FragColor = diffuse;
+      }
+    </script>
+    <script id="vertex3" type="text/x-glsl-vert">
+      varying vec2 vUv;
+    //  varying float xCoord;
+      uniform float rightMostXCoord;
+      uniform float time;
+          uniform float timeDomain[512];
+
+    //  varying float index;
+      attribute float strIndex;
+      uniform float interval;
+         
+         mat3 rotateAngleAxisMatrix(float angle, vec3 axis) {
+        float c = cos(angle);
+        float s = sin(angle);
+        float t = 1.0 - c;
+        axis = normalize(axis);
+        float x = axis.x, y = axis.y, z = axis.z;
+        return mat3(
+          t*x*x + c,    t*x*y + s*z,  t*x*z - s*y,
+          t*x*y - s*z,  t*y*y + c,    t*y*z + s*x,
+          t*x*z + s*y,  t*y*z - s*x,  t*z*z + c
+        );
+      }
+
+      void main() {
+  /*      vec3 corner = vec3(floor(position.x/1.0)*1.0, floor(position.y/1.0)*1.0, 0.0);
+        vec3 mid = corner + vec3(0.5, 0.5, 0.0);
+        vec3 rpos = rotateAngleAxis(strIndex+time, vec3(mod(strIndex,16.0), -8.0+mod(strIndex,15.0), 1.0), position ) ;
+        *///vec4 fpos = vec4( mix(position,rpos,interval), 1.0 );
+        vec4 fpos = vec4(position,1.0);
+      //  fpos.x += -35.0;
+        float xCoord = position.x/rightMostXCoord;
+        fpos.y = fpos.y + timeDomain[int(xCoord*250.0)] * 12.0;
+        
+        fpos.z += ((sin(strIndex+time*2.0)))*(1.0-interval) * 1.0;
+        fpos.y += ((cos(strIndex+time*2.0)))*(1.0-interval)* 1.0;
+        vec4 mvPosition = modelViewMatrix * fpos;
+        mvPosition.y += 1.0*sin(time*0.5+mvPosition.x/25.0)*(1.0-interval);
+        mvPosition.x -= 1.0*cos(time*0.5+mvPosition.y/25.0)*(1.0-interval);
+        vec4 p = projectionMatrix * mvPosition;
+        vUv = uv;
+        gl_Position = p;
+      }
+    </script>
+      <script id="fragment3" type="text/x-glsl-frag">
+      varying vec2 vUv;
+       uniform float interval;
+      uniform sampler2D map;
+      uniform float noise;
+      uniform float time;
+
+     // int index2 = 20;
+      void main() {
+        vec2 uv = vUv;
+
+        uv.y = uv.y + sin(uv.x  * 1000.0 * time)* noise ;//+ sin(uv.x * 2000.0)*0.001 * volume2;
+        uv.x = uv.x + cos(tan(uv.y)  * 1000.0 * time)* noise ;
+        vec4 diffuse = texture2D(map, uv);
+       /*  vec4 diffuse_white = diffuse;
+        //vec4 diffuse_green = diffuse;
+        //vec4 diffuse_blue = diffuse;
+        diffuse_white.r = 1.0;
+        diffuse_white.g = 1.0;
+        diffuse_white.b = 1.0;
+        
+        vec4 mix_diffuse = mix(diffuse, diffuse_white,0.5-interval/2.0);
+
+        gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
+        gl_FragColor = diffuse;
+      }
+    </script>
+    <script src="../js/jquery-1.11.1.min.js" type="text/javascript"></script>
+        <script src="../js/jquery-ui.min.js" type="text/javascript"></script>
+
+    <script src="Three.js"></script>
+    <script src="nfme.js"></script>
+    <script src="./waax.min.js"></script>
+        
+
+    <style>
+      html {
+        background-color: #fff;
+      }
+        
+      * {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+<!--
+  <div id= "micselect" class="select">
+    <label for="audioSource">Audio source: </label><select id="audioSource"><option>select your mic</select></select>
+    <button id="hide">hide</button>
+  </div>
+-->
+
+<!--      <div id="container">
+
+      </div>
+       /* <div align = center>                   
+          <button id="playstop">Play</button>
+      </div>
+-->
+  </body>
+      <script src="pat_showcase_simplified.js"></script>
+
+</html>
+
+
