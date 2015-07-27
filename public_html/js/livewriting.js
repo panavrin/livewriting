@@ -13,6 +13,7 @@
         keydown_debug_color_index=0,
         keypress_debug_color_index=0,
         mouseup_debug_color_index=0,
+        double_click_debug_color_index=0,
         nonTypingKey={// this keycode is from http://css-tricks.com/snippets/javascript/javascript-keycodes/
         BACKSPACE:8,
         TAB:9,
@@ -107,8 +108,10 @@
                 keycode = (ev.keyCode ? ev.keyCode : ev.which),
      //           keycode = getChar(ev),
                 index = this.lw_liveWritingJsonData.length;
-            if (keycode==nonTypingKey["BACKSPACE"]|| keycode==nonTypingKey["DELETE"])
+            if (keycode==nonTypingKey["BACKSPACE"]|| keycode==nonTypingKey["DELETE"]){
                 this.lw_liveWritingJsonData[index] = {"p":"keyup", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
+                this.lw_liveWritingJsonData[index-1]["s"] = pos[0]; // this is needed for double click selection which eat-up extra space. 
+            }
             else if (isCaretMovingKey(keycode))
                 this.lw_liveWritingJsonData[index] = {"p":"keyup", "t":timestamp, "k":keycode, "s":pos[0], "e":pos[1] };
         //    if(DEBUG)console.log("key up:" + keycode );
@@ -122,6 +125,24 @@
                 $("#keyup_debug").css("background-color", randomcolor[keyup_debug_color_index]);
             }
         },
+
+        dblclickFunc = function(ev){
+            var timestamp = (new Date()).getTime() - this.lw_startTime,
+            pos = this.lw_getCursorPosition(),
+            keycode = (ev.keyCode ? ev.keyCode : ev.which),
+            index = this.lw_liveWritingJsonData.length;
+
+            if(DEBUG){
+                $("#double_click_debug").html(keycode);
+                $("#start_double_click_debug").html(pos[0]);
+                $("#end_double_click_debug").html(pos[1]);
+                
+                double_click_debug_color_index++;
+                double_click_debug_color_index%=randomcolor.length;
+                $("#double_click_debug").css("background-color", randomcolor[double_click_debug_color_index]);
+            }
+        },
+
         keyDownFunc= function (ev) {
             /*
             record keyCode, timestamp, cursor caret position. 
@@ -191,7 +212,7 @@
                 $("#end_mouseup_debug").html(pos[1]);
                 mouseup_debug_color_index++;
                 mouseup_debug_color_index%=randomcolor.length;
-                $("#mouseup_debug").css("background-color", randomcolor[keypress_debug_color_index]);;            } 
+                $("#mouseup_debug").css("background-color", randomcolor[mouseup_debug_color_index]);;            } 
         }, 
         scrollFunc = function(ev){
             var timestamp = (new Date()).getTime()- this.lw_startTime,
@@ -428,6 +449,7 @@
                     if ( selectionStart == selectionEnd){
                         selectionStart--;
                     }
+
                     it.value = it.value.substring(0, selectionStart)
                             + it.value.substring(selectionEnd, it.value.length);
                     setCursorPosition(it, selectionStart, selectionStart)
@@ -437,11 +459,12 @@
                     if ( selectionStart == selectionEnd){
                         selectionEnd++;
                     }
+                    
                     it.value = it.value.substring(0, selectionStart)
                         + it.value.substring(selectionEnd, it.value.length);
                     setCursorPosition(it, selectionStart, selectionStart)
                 }
-                else if (isCaretMovingKey(keycode)){
+                else if (event['p'] == "keyup"&& isCaretMovingKey(keycode)){
                     // do nothing. 
                     setCursorPosition(it, selectionStart, selectionEnd);
                 }
@@ -542,6 +565,7 @@
                         it.ondragstart = dragStartFunc;
                         it.ondragend = dragEndFunc;
                         it.ondrop = dropFunc;
+                        it.ondblclick = dblclickFunc;
                     }
                     else if (type == "codemirror"){
                         it.on("change", changeFunc);
@@ -554,14 +578,14 @@
                     it.lw_dragAndDrop = false;
                     if(settings.writeMode != null)
                         settings.writeMode();
-                     $(window).onbeforeunload = function(){
+                    $(window).onbeforeunload = function(){
                         return setting.levaeWindowMsg;
                     };
                     
                 }
             
                 if(DEBUG==true && it.lw_type=="textarea")
-                    $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td></tr></table></div>");
+                    $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td><td>double click</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td><td><div id=\"double_click_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td><td><div id=\"start_double_click_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td><td><div id=\"end_double_click_debug\"></div></td></tr></table></div>");
         }, 
         postData = function(it, url, respondFunc){
             if (it.lw_liveWritingJsonData.length==0){
