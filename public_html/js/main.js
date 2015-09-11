@@ -25,7 +25,7 @@ $(document).ready(function () {
     };
   // $("#livetext").autogrow();
 
-    $("#livetext").livewritingtextarea("create","textarea", {name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
+    $("#livetext").livewritingMessage("create","textarea", {name: "Sang's first run",   writeMode:writeModeFunc, readMode:readModeFunc});
  
     $("#postdata").button().css({ width: '150px', margin:'5px'}).click(function(){
          $('#post-message').bPopup({
@@ -34,7 +34,7 @@ $(document).ready(function () {
             positionStyle: 'absolute',
             escClose :false
         });
-        $("#livetext").livewritingtextarea("post","/post",function(state, aid){
+        $("#livetext").livewritingMessage("post","/post",function(state, aid){
 
             $('#post-message').bPopup().close();
             articlelink = resetlink+"?aid="+aid;
@@ -57,7 +57,7 @@ $(document).ready(function () {
 
     $("#start").button().css({ width: '150px', margin:'5px'}).click(function(){
         $('#initial-message').bPopup().close();
-        $("#livetext").livewritingtextarea("reset");
+        $("#livetext").livewritingMessage("reset");
         $("#livetext").focus();
         $("#reset").show(); // hide the button if read mode 
     });
@@ -95,7 +95,7 @@ $(document).ready(function () {
             obj.css({opacity:'0.9'});
         },
         hide: function(obj){
-            console.log(obj);
+          //  console.log(obj);
         },
         hidden: function(obj){
             console.log(obj);
