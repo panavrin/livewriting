@@ -89,47 +89,50 @@ $(document).ready(function () {
         });
     });
     
-    var evalSelection = function(option){
+    
+    var evalAndStoreNow = function(){
+        var option = {"type":"eval", delay:false};
+        if(editor.lw_writemode)editor.livewritingMessage("userinput",0,option);
         var selectedCode = editor.getSelection();
         
         if (selectedCode == ''){
             //alert('no selection');
             selectedCode = editor.getLine(editor.getCursor().line);
+        }   
+        try {
+            eval(selectedCode);
+        } catch (e) {
+            
         }
-        if (option.delay){
-            try {
-                Gibber.Clock.codeToExecute.push({code:selectedCode});
-            } catch (e) {
-                 
-            }
-        }
-        else{
-            try {
-                eval(selectedCode);
-            } catch (e) {
-                
-            }
-        }
-    }
-    
-    var evalAndStoreNow = function(){
-        var option = {"type":"eval", delay:false};
-        if(editor.lw_writemode)editor.livewritingMessage("userinput",option);
-        evalSelection(option);
+ 
+
     }
     
     var evalAndStoreAtNM = function(){
         var option = {"type":"eval", delay:true};
-        if(editor.lw_writemode)editor.livewritingMessage("userinput",option);
-        evalSelection(option);
+        if(editor.lw_writemode)editor.livewritingMessage("userinput",1,option);
+        var selectedCode = editor.getSelection();
+        
+        if (selectedCode == ''){
+            //alert('no selection');
+            selectedCode = editor.getLine(editor.getCursor().line);
+        } 
+        try {
+            Gibber.Clock.codeToExecute.push({code:selectedCode});
+        } catch (e) {
+             
+        }
     }
     
     var clearAndStore = function(){
-        if(editor.lw_writemode)editor.livewritingMessage("userinput",{"type":"clear"});
+        if(editor.lw_writemode)editor.livewritingMessage("userinput",2,{"type":"clear"});
         eval("Gibber.clear();");
     }
     
-    editor.livewritingMessage("register", evalSelection);
+    
+    editor.livewritingMessage("register",0, evalAndStoreAtNM);
+    editor.livewritingMessage("register",1, evalAndStoreNow);
+    editor.livewritingMessage("register",2, clearAndStore);
     
     editor.setOption("extraKeys", {
       "Ctrl-Enter": evalAndStoreNow,

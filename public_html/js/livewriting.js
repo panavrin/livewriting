@@ -457,7 +457,9 @@
                 it.getDoc().setSelection(event['s'], event['e'], {scroll:true});
             }
             else if (event['p'] == "userinput"){
-                it.userInputRespond[event['n']](event['d']);
+                var number = (event['n'] ? event['n'] : 0)
+                // TODO : run error handling (in case it is not registered. )
+                it.userInputRespond[number](event['d']);
             }
             data.splice(0,1);
             if (data.length==0){
@@ -828,6 +830,8 @@
                 it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:null);
                 it.value = it.lw_initialText;
                 var data=json_file["action"];
+                if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
+
                 if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" + jqXHR.responseText);
 
                 var currTime = (new Date()).getTime();
@@ -853,6 +857,7 @@
             it.value = it.lw_initialText;
 
             var data=json_file["action"];
+            if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
             if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" );
 
             var currTime = (new Date()).getTime();
@@ -916,7 +921,7 @@
                 }
                 
                 if(typeof(option2) != "function" || option2 == null){
-                    alert( "you have to specify a function that will run when server responded. "+ option2);
+                    alert( "you have to specify a function that will run when server responded. \n"+ option2);
                     return;
                 }
                 
@@ -985,9 +990,10 @@
 // when user input event happens
 // save the event 
                 if(typeof(option1) != "number" || option1 == null){
-                    alert( "you have to specify a function that will run when user-input is done"+ option1);
+                    alert( "you have to specify a index number of the user-input function (can be any number) that will run when user-input is done"+ option1);
                     return;
                 }
+
                 it.onUserInput(option1, option2);
             }
             else if (message == "register"){
