@@ -11,12 +11,13 @@ $(document).ready(function () {
     }
     
     var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-        lineNumbers: false,
+        lineNumbers: true,
         styleActiveLine: true,
         matchBrackets: true, 
+        
     });
     
-    editor.setSize("100%", "100%");
+    editor.setSize("100%", "60%");
     
     var writeModeFunc = function(){
          $('#initial-message').bPopup({
@@ -38,7 +39,7 @@ $(document).ready(function () {
     });
     
     editor.livewritingtextarea = $.fn.livewritingtextarea;
-    editor.livewritingtextarea("create", "codemirror", {name: "Sang's first run in CodeMirror",   writeMode:writeModeFunc, readMode:readModeFunc});
+    editor.livewritingtextarea("create", "codemirror", {name: "Sang's first run in Gibber",   writeMode:writeModeFunc, readMode:readModeFunc});
     
 
     $("#start").button().css({ width: '150px', margin:'5px'}).click(function(){
