@@ -38,13 +38,13 @@ $(document).ready(function () {
         var windowObjectReference = window.open(demolink,"win1");
     });
     
-    editor.livewritingtextarea = $.fn.livewritingtextarea;
-    editor.livewritingtextarea("create", "codemirror", {name: "Sang's first run in Gibber",   writeMode:writeModeFunc, readMode:readModeFunc});
+    editor.livewritingMessage = $.fn.livewritingMessage;
+    editor.livewritingMessage("create", "codemirror", {name: "Sang's first run in Gibber",   writeMode:writeModeFunc, readMode:readModeFunc});
     
 
     $("#start").button().css({ width: '150px', margin:'5px'}).click(function(){
         $('#initial-message').bPopup().close();
-        editor.livewritingtextarea("reset");
+        editor.livewritingMessage("reset");
         editor.focus();
     });
     
@@ -74,7 +74,7 @@ $(document).ready(function () {
             escClose :false
         });
         
-        editor.livewritingtextarea("post","/post",function(state, aid){
+        editor.livewritingMessage("post","/post",function(state, aid){
            $('#post-message').bPopup().close();
             articlelink = resetlink+"?aid="+aid;
             $('#post-complete-message').bPopup({
@@ -114,22 +114,22 @@ $(document).ready(function () {
     
     var evalAndStoreNow = function(){
         var option = {"type":"eval", delay:false};
-        if(editor.lw_writemode)editor.livewritingtextarea("userinput",option);
+        if(editor.lw_writemode)editor.livewritingMessage("userinput",option);
         evalSelection(option);
     }
     
     var evalAndStoreAtNM = function(){
         var option = {"type":"eval", delay:true};
-        if(editor.lw_writemode)livewritingtextarea("userinput",option);
+        if(editor.lw_writemode)editor.livewritingMessage("userinput",option);
         evalSelection(option);
     }
     
     var clearAndStore = function(){
-        if(editor.lw_writemode)editor.livewritingtextarea("userinput",{"type":"clear"});
+        if(editor.lw_writemode)editor.livewritingMessage("userinput",{"type":"clear"});
         eval("Gibber.clear();");
     }
     
-    editor.livewritingtextarea("register", evalSelection);
+    editor.livewritingMessage("register", evalSelection);
     
     editor.setOption("extraKeys", {
       "Ctrl-Enter": evalAndStoreNow,
