@@ -75,13 +75,17 @@ textarea {  /* position is inherited */
     z-index: 5;
 }
 
+pre.CodeMirror-placeholder
+{
+    color:#bbb;
+}
+
 .CodeMirror {
     border: 0px solid gray; 
     font-size:24px;
     opacity:0.8;
     margin: auto;
     margin-top: 1%;
-    
 }
 
 .left-shadow-overlay {

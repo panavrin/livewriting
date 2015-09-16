@@ -738,7 +738,11 @@
                 it.userInputRespond = {};
                 var aid = getUrlVar('aid');
                 if (aid){ // read mode
-                    
+                    if (it.lw_type == "codemirror"){
+                        if (it.options.placeholder){
+                           it.setOption("placeholder","");      
+                        }
+                    }
                     playbackbyAid(it, aid);     
                     it.lw_writemode = false;
                     if(settings.readMode != null)
@@ -963,6 +967,13 @@
                 }
                 
                 var articleid = option1;
+                
+                if (it.lw_type == "codemirror"){
+                    if (it.options.placeholder){
+                        it.setOption("placeholder","");
+                    }
+                }
+
                 playbackbyAid(it, articleid,option2);
             }
             else if (message == "playJson"){
@@ -991,6 +1002,11 @@
                 it.ondrop = null;
                 it.ondblclick = null;
                 it.oninput = null;
+                if (it.lw_type == "codemirror"){
+                    if (it.options.placeholder){
+                        it.setOption("placeholder","");
+                    }
+                }
                 playbackbyJson(it, data);
                 return;
             }
