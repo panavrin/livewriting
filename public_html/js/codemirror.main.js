@@ -2,8 +2,8 @@
 
 $(document).ready(function () {
     var resetlink = "http://localhost:2401/";
-   // var resetlink = "http://livewriting.eecs.umich.edu:2401/codemirror.html";
-   /// var resetlink = "http://livewriting.eecs.umich.edu/codemirror.html";
+   // var resetlink = "http://livewriting.eecs.umich.edu:2401/";
+   /// var resetlink = "http://livewriting.eecs.umich.edu/";
     var aboutlink = resetlink + "?aid=aboutechobin";
 
     function cursorAct(cm){

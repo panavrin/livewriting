@@ -9,7 +9,8 @@ Please contact snaglee@umich.edu for more detail.
 # history
 
 0.1.0 (Sep. 16 2015)
-* Textarea Ctrl/Cmd key fixed
+* Textarea Ctrl/Cmd key fixed 
+* Safari Keystroke difference handled. (when command key is pressed) 
 * Codemirror as a main editor (instead of textarea)
 
 

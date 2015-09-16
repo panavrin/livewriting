@@ -478,7 +478,7 @@
             if (data.length==0){
                 if(DEBUG)console.log("done at " + currentTime);
                 if (it.lw_type == "textarea"){
-                    if ( it.finaltext != it.value)
+                    if ( it.lw_finaltext != it.value)
                     {
                         console.log("There is discrepancy. Do something");
                         if(DEBUG) alert("There is discrepancy. Do something" + it.finaltext +":"+ it.value);
@@ -486,7 +486,7 @@
                 }
                 else if ( it.lw_type == "codemirror")
                 {
-                    if ( it.finaltext != it.getValue())
+                    if ( it.lw_finaltext != it.getValue())
                     {
                         
                         console.log("There is discrepancy. Do something");
