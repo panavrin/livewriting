@@ -1,9 +1,9 @@
 /*jslint browser: true*/
 /*global $, jQuery, alert*/
 $(document).ready(function () {
-    var resetlink = "http://localhost:2401";
-   // var resetlink = "http://livewriting.eecs.umich.edu:2401";
-   /// var resetlink = "http://livewriting.eecs.umich.edu";
+    var resetlink = "http://localhost:2401/textarea.html";
+   // var resetlink = "http://livewriting.eecs.umich.edu:2401/textarea.html";
+   /// var resetlink = "http://livewriting.eecs.umich.edu/textarea.html";
     var aboutlink = resetlink + "?aid=aboutechobin";
 
     "use strict";
