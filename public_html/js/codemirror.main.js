@@ -1,9 +1,7 @@
  
 
 $(document).ready(function () {
-    var resetlink = "http://localhost:2401/";
-   // var resetlink = "http://www.echobin.com:2401/";
-   /// var resetlink = "http://www.echobin.com/";
+    var resetlink = localServerLink;
     var aboutlink = resetlink + "?aid=aboutechobin";
 
     function cursorAct(cm){

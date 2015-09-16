@@ -1,9 +1,7 @@
 /*jslint browser: true*/
 /*global $, jQuery, alert*/
 $(document).ready(function () {
-    var resetlink = "http://localhost:2401/textarea.html";
-   // var resetlink = "http://www.echobin.com:2401/textarea.html";
-   /// var resetlink = "http://www.echobin.com/textarea.html";
+    var resetlink = localServerLink + "textarea.html";
     var aboutlink = resetlink + "?aid=aboutechobin";
 
     "use strict";

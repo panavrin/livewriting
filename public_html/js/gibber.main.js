@@ -1,9 +1,7 @@
  
 
 $(document).ready(function () {
-    var resetlink = "http://localhost:2401/gibber.html";
-   // var resetlink = "http://www.echobin.com:2401/gibber.html";
-   /// var resetlink = "http://www.echobin.com/gibber.html";
+    var resetlink = localServerLink + "gibber.html";
     var demolink = resetlink + "?aid=OKDMWHgkDCdAmA";
 
     function cursorAct(cm){
