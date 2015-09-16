@@ -18,7 +18,7 @@ $(document).ready(function () {
         height:"100%"
     });
     
-    editor.setSize("100%", "100%");
+    editor.setSize("96%", "98%");
     
     var writeModeFunc = function(){
          $('#initial-message').bPopup({

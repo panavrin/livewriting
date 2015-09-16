@@ -76,9 +76,12 @@ textarea {  /* position is inherited */
 }
 
 .CodeMirror {
-    border: 1px solid black; 
+    border: 0px solid gray; 
     font-size:24px;
     opacity:0.8;
+    margin: auto;
+    margin-top: 1%;
+    
 }
 
 .left-shadow-overlay {
