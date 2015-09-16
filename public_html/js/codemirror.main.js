@@ -14,6 +14,7 @@ $(document).ready(function () {
         matchBrackets: false, 
         smartIndent : false,
         indentUnit:0,
+        lineWrapping:true,
         mode:"Plain Text",
         height:"100%"
     });
