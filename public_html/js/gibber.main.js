@@ -2,8 +2,8 @@
 
 $(document).ready(function () {
     var resetlink = "http://localhost:2401/gibber.html";
-   // var resetlink = "http://livewriting.eecs.umich.edu:2401/gibber.html";
-   /// var resetlink = "http://livewriting.eecs.umich.edu/gibber.html";
+   // var resetlink = "http://www.echobin.com:2401/gibber.html";
+   /// var resetlink = "http://www.echobin.com/gibber.html";
     var demolink = resetlink + "?aid=OKDMWHgkDCdAmA";
 
     function cursorAct(cm){

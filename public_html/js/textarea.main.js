@@ -2,8 +2,8 @@
 /*global $, jQuery, alert*/
 $(document).ready(function () {
     var resetlink = "http://localhost:2401/textarea.html";
-   // var resetlink = "http://livewriting.eecs.umich.edu:2401/textarea.html";
-   /// var resetlink = "http://livewriting.eecs.umich.edu/textarea.html";
+   // var resetlink = "http://www.echobin.com:2401/textarea.html";
+   /// var resetlink = "http://www.echobin.com/textarea.html";
     var aboutlink = resetlink + "?aid=aboutechobin";
 
     "use strict";
