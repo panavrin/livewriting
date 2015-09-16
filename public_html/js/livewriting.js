@@ -9,7 +9,7 @@
 (function ($) {
     "use strict";
      
-    var DEBUG = false,
+    var DEBUG = true,
         INSTANTPLAYBACK = false,
         randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
         keyup_debug_color_index=0,
@@ -319,12 +319,13 @@
             this.lw_PASTE_TRIGGER = true;
             if(DEBUG)this.lw_liveWritingJsonData[index]["v"] = this.value;
             if(DEBUG)console.log("paste event :" + ev.clipboardData.getData('text/plain') + " (" + pos[0] + ":" + pos[1] + ")"  + " time:" + timestamp);
-        }, 
-        userInputFunc = function(userinput_number,options){ // this is only for codemirror
+        }
+        ,
+        userInputFunc = function(userinput_number,options){ 
             var it = this; // this should be editor
             var timestamp = (new Date()).getTime()-it.lw_startTime,
                 index = it.lw_liveWritingJsonData.length;
-            it.lw_liveWritingJsonData[index] = {"p":"userinput", "t":timestamp, "n": userinput_number, "d":options};
+            it.lw_liveWritingJsonData[index] = {"p":"i", "t":timestamp, "n": userinput_number, "d":options};
         },
         inputFunc = function(ev){
             var timestamp = (new Date()).getTime()- this.lw_startTime,
@@ -415,10 +416,19 @@
             var timestamp = (new Date()).getTime()- it.lw_startTime,            
                 index = it.lw_liveWritingJsonData.length;
             delete changeObject.removed; // to reduce data
-            it.lw_liveWritingJsonData[index] = {"p":"change", "t":timestamp, "d":changeObject};
+            it.lw_liveWritingJsonData[index] = {"p":"c", "t":timestamp, "d":changeObject};
             it.lw_justAdded = true;
             if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
         },
+        viewPortChangeFunc= function(cm,from,to){// this is only for codemirror / 
+            var it = cm.getDoc().getEditor(); 
+            var timestamp = (new Date()).getTime()- it.lw_startTime,            
+                index = it.lw_liveWritingJsonData.length;
+            var scrollinfo = cm.getScrollInfo();
+            it.lw_liveWritingJsonData[index] = {"p":"s", "t":timestamp, "f":scrollinfo.left, "to":scrollinfo.top};
+            if(DEBUG)console.log("viewPortChange event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        }
+        ,
         // the following function is for codemirror only.
         cursorFunc = function(cm){
             
@@ -431,7 +441,7 @@
                 toPos = cm.getDoc().getCursor("to");
             var timestamp = (new Date()).getTime()- it.lw_startTime ,           
                 index = it.lw_liveWritingJsonData.length;
-            it.lw_liveWritingJsonData[index] = {"p":"cursor", "t":timestamp, "s":fromPos, "e":toPos};
+            it.lw_liveWritingJsonData[index] = {"p":"u", "t":timestamp, "s":fromPos, "e":toPos};
             
             if(DEBUG)console.log("cursor event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
         },
@@ -441,7 +451,7 @@
                 event = data[0];
             it.getDoc().getEditor().focus();
             if(DEBUG) console.log(JSON.stringify(event));
-            if (event['p'] == "change"){
+            if (event['p'] == "c"){ // change in content
                 var inputData    = event['d'];
                 var startLine = inputData['from']['line'],
                     startCh = inputData['from']['ch'],
@@ -453,21 +463,23 @@
                 it.getDoc().replaceSelection(text);
                 
             }
-            else if (event['p'] == "cursor"){
+            else if (event['p'] == "u"){ // cursor change 
                 it.getDoc().setSelection(event['s'], event['e'], {scroll:true});
             }
-            else if (event['p'] == "userinput"){
+            else if (event['p'] == "i"){ //  user input 
                 var number = (event['n'] ? event['n'] : 0)
                 // TODO : run error handling (in case it is not registered. )
                 it.userInputRespond[number](event['d']);
             }
+            else if (event['p'] == "s"){ // scroll 
+                it.scrollTo(event["f"], event["to"]);
+            }
             data.splice(0,1);
             if (data.length==0){
                 if(DEBUG)console.log("done at " + currentTime);
-                if (it.lw_type = "textarea"){
+                if (it.lw_type == "textarea"){
                     if ( it.finaltext != it.value)
                     {
-                        
                         console.log("There is discrepancy. Do something");
                         if(DEBUG) alert("There is discrepancy. Do something" + it.finaltext +":"+ it.value);
                     }
@@ -660,7 +672,7 @@
             else if (event['p'] == "scroll"){
                 it.scrollTop = event['h']
             }
-            else if (event['p'] == "userinput"){
+            else if (event['p'] == "userinput" || event['p'] == "i"){
                 it.userInputRespond[event['n']](event['d']);
             }
             else if (event['p'] == "mouseUp")
@@ -756,6 +768,7 @@
                     else if (type == "codemirror"){
                         it.on("change", changeFunc);
                         it.on("cursorActivity", cursorFunc);
+                        it.on("scroll", viewPortChangeFunc)
                     }
                     
                     it.onUserInput = userInputFunc;
@@ -776,19 +789,21 @@
         getActionData = function(it){
             var data = {};
                 
-            data["version"] = 3;
+            data["version"] = 4;
             data["playback"] = 1; // playback speed
             data["editor_type"] = it.lw_type;
             data["initialtext"] = it.lw_initialText;
             data["action"] = it.lw_liveWritingJsonData;
-        
+            data["localEndtime"] = new Date().getTime();
+            data["localStarttime"] = it.lw_startTime;
+
             if (it.lw_type == "textarea")
                 data["finaltext"] = it.value;
             else if (it.lw_type == "codemirror")
                 data["finaltext"] = it.getValue();
             return data;
         }
-        ,postData = function(it, url, respondFunc){
+        ,postData = function(it, url, useroptions, respondFunc){
             if (it.lw_liveWritingJsonData.length==0){
                 alert(settings.noDataMsg);
                 return;
@@ -796,6 +811,7 @@
 
             // see https://github.com/panavrin/livewriting/blob/master/json_file_format
             var data = getActionData(it);
+            data["useroptions"] = useroptions;
             // Send the request
             $.post(url, JSON.stringify(data), function(response, textStatus, jqXHR) {
                 // Live Writing server should return article id (aid) 
@@ -920,15 +936,16 @@
                     return;
                 }
                 
-                if(typeof(option2) != "function" || option2 == null){
+                if(typeof(option3) != "function" || option3 == null){
                     alert( "you have to specify a function that will run when server responded. \n"+ option2);
                     return;
                 }
                 
                 var url = option1,
-                    respondFunc = option2;
+                    useroptions = option2,
+                    respondFunc = option3;
                 
-                postData(it, url, respondFunc);
+                postData(it, url, useroptions, respondFunc);
                 
             }
             else if (message == "play"){

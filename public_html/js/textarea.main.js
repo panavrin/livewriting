@@ -86,10 +86,10 @@ $(document).ready(function () {
         trigger: $("#trigger"),
         autoEscape: true,
         show: function(obj){
-        console.log(obj);
+     //   console.log(obj);
         },
         shown: function(obj){
-            console.log(obj);
+        //    console.log(obj);
             $("#trigger").html('&gt;');
             obj.toggleClass(".left-shadow-overlay");
             obj.css({opacity:'0.9'});
@@ -98,7 +98,7 @@ $(document).ready(function () {
           //  console.log(obj);
         },
         hidden: function(obj){
-            console.log(obj);
+        //    console.log(obj);
             $("#trigger").html('&lt;');
             obj.toggleClass(".left-shadow-overlay");
             $("#livetext").focus();

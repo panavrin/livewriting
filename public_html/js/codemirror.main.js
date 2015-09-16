@@ -1,19 +1,23 @@
  
 
 $(document).ready(function () {
-    var resetlink = "http://localhost:2401/gibber.html";
-   // var resetlink = "http://livewriting.eecs.umich.edu:2401/gibber.html";
-   /// var resetlink = "http://livewriting.eecs.umich.edu/gibber.html";
-    var demolink = resetlink + "?aid=OKDMWHgkDCdAmA";
+    var resetlink = "http://localhost:2401/";
+   // var resetlink = "http://livewriting.eecs.umich.edu:2401/codemirror.html";
+   /// var resetlink = "http://livewriting.eecs.umich.edu/codemirror.html";
+    var aboutlink = resetlink + "?aid=aboutechobin";
 
     function cursorAct(cm){
         console.log("cursorAct : " + cm.getSelection());
     }
-    
-    var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+    //var editor = $("#livetext");
+    var editor = CodeMirror.fromTextArea(document.getElementById("livetext"), {
         lineNumbers: false,
-        styleActiveLine: true,
-        matchBrackets: true, 
+        styleActiveLine: false,
+        matchBrackets: false, 
+        smartIndent : false,
+        indentUnit:0,
+        mode:"Plain Text",
+        height:"100%"
     });
     
     editor.setSize("100%", "100%");
@@ -33,22 +37,100 @@ $(document).ready(function () {
     //    $("#reset").text("New");
     };
     
-     $(".about").button().css({ width: '150px', margin:'5px'}).click(function(){
-        var windowObjectReference = window.open(demolink,"win1");
+    editor.livewritingMessage = $.fn.livewritingMessage;
+    editor.livewritingMessage("create", "codemirror", {name: "Sang's first run in CodeMirror",   writeMode:writeModeFunc, readMode:readModeFunc});
+
+    $("#postdata").button().css({ width: '150px', margin:'5px'}).click(function(){
+         $('#post-message').bPopup({
+            modalClose: false,
+            opacity: 0.7,
+            positionStyle: 'absolute',
+            escClose :false
+        });
+
+        var useroptions = {};
+
+        $.get("/whattime",  function(response) {
+            // Live Writing server should return article id (aid) 
+           
+            var serverTime = new Date(Number(response));
+           // var localTime = new Date();
+
+            useroptions["servertime"] = response;
+            editor.livewritingMessage("post","/post", useroptions, function(state, aid){
+           $('#post-message').bPopup().close();
+            articlelink = resetlink+"?aid="+aid;
+                $('#post-complete-message').bPopup({
+                modalClose: false,
+                opacity: 0.7,
+                positionStyle: 'absolute',
+                escClose :false
+                });  
+                $("#post-link").text(articlelink);    
+                ZeroClipboard.setData( "text/plain", articlelink);
+            });
+        })
+        .fail(function(response) {
+            console.log("time request failed");
+        });
     });
-    
-    editor.livewritingtextarea = $.fn.livewritingtextarea;
-    editor.livewritingtextarea("create", "codemirror", {name: "Sang's first run in CodeMirror",   writeMode:writeModeFunc, readMode:readModeFunc});
-    
+    $("#reset").button().css({ width: '150px', margin:'5px'}).click(function(){
+        window.open(resetlink, '_self');
+    });
 
     $("#start").button().css({ width: '150px', margin:'5px'}).click(function(){
         $('#initial-message').bPopup().close();
-        editor.livewritingtextarea("reset");
+        editor.livewritingMessage("reset");
         editor.focus();
+        $("#reset").show(); // hide the button if read mode 
+    });
+
+    $(".about").button().css({ width: '150px', margin:'5px'}).click(function(){
+        var windowObjectReference = window.open(aboutlink,"win1");
+    });
+     $("#play").button().css({ width: '150px', margin:'5px'}).click(function(){
+        var windowObjectReference = window.open(articlelink,"win2");
+    });
+    $("#close").button().css({ width: '150px', margin:'5px'}).click(function(){
+        $('#post-complete-message').bPopup().close();
+    });
+    var client = new ZeroClipboard($("#copytoclipboard"));
+    client.on( "aftercopy", function( event ) {
+        alert("Copied text to clipboard: " + event.data["text/plain"] );
+    } );
+
+    $("#copytoclipboard").button().css({width:'250px', margine:'5px'});
+   
+    var slider = $("#slider").slideReveal({
+        width: 250,
+        push: false,
+        position: "right",
+        speed: 600,
+        trigger: $("#trigger"),
+        autoEscape: true,
+        show: function(obj){
+        //console.log(obj);
+        },
+        shown: function(obj){
+          //  console.log(obj);
+            $("#trigger").html('&gt;');
+            obj.toggleClass(".left-shadow-overlay");
+            obj.css({opacity:'0.9'});
+        },
+        hide: function(obj){
+          //  console.log(obj);
+        },
+        hidden: function(obj){
+            //console.log(obj);
+            $("#trigger").html('&lt;');
+            obj.toggleClass(".left-shadow-overlay");
+            editor.focus();
+            obj.css({opacity:'0.5'});
+        }
     });
     
-    $("#new").button().css({ width: '150px', margin:'5px'}).click(function(){
-        window.open(resetlink, '_self');
+    editor.on("click",function(){
+        slider.slideReveal("hide");
     });
 
     var client = new ZeroClipboard($("#copytoclipboard"));
@@ -65,95 +147,6 @@ $(document).ready(function () {
         $('#post-complete-message').bPopup().close();
     });
     
-    $("#post").button().css({ width: '150px', margin:'5px'}).click(function(){
-         $('#post-message').bPopup({
-            modalClose: false,
-            opacity: 0.7,
-            positionStyle: 'absolute',
-            escClose :false
-        });
-        
-        editor.livewritingtextarea("post","/post",function(state, aid){
-           $('#post-message').bPopup().close();
-            articlelink = resetlink+"?aid="+aid;
-            $('#post-complete-message').bPopup({
-                modalClose: false,
-                opacity: 0.7,
-                positionStyle: 'absolute',
-                escClose :false
-            });  
-            $("#post-link").text(articlelink);    
-
-            ZeroClipboard.setData( "text/plain", articlelink);
-        });
-    });
+   
     
-    var evalSelection = function(option){
-        var selectedCode = editor.getSelection();
-        
-        if (selectedCode == ''){
-            //alert('no selection');
-            selectedCode = editor.getLine(editor.getCursor().line);
-        }
-        if (option.delay){
-            try {
-                Gibber.Clock.codeToExecute.push({code:selectedCode});
-            } catch (e) {
-                 
-            }
-        }
-        else{
-            try {
-                eval(selectedCode);
-            } catch (e) {
-                
-            }
-        }
-    }
-    
-    var evalAndStoreNow = function(){
-        var option = {"type":"eval", delay:false};
-        if(editor.lw_writemode)editor.livewritingtextarea("userinput",option);
-        evalSelection(option);
-    }
-    
-    var evalAndStoreAtNM = function(){
-        var option = {"type":"eval", delay:true};
-        if(editor.lw_writemode)livewritingtextarea("userinput",option);
-        evalSelection(option);
-    }
-    
-    var clearAndStore = function(){
-        if(editor.lw_writemode)editor.livewritingtextarea("userinput",{"type":"clear"});
-        eval("Gibber.clear();");
-    }
-    
-    editor.livewritingtextarea("register", evalSelection);
-    
-    editor.setOption("extraKeys", {
-      "Ctrl-Enter": evalAndStoreNow,
-      "Shift-Ctrl-Enter": evalAndStoreAtNM,
-      "Ctrl-.": clearAndStore
-    });
-    
-    
-   /* editor.on("cursorActivity", cursorAct);
-    editor.on("keypress", keyPressFunc);
-    editor.on("change", cutFunc);
-    */
-    
-    Gibber.init();
-
- /*  Gibber.init()
-
-    a = EDrums('x*ox*xo-')
-    a.snare.snappy = 1
-
-    a.fx.add( Reverb() )
-
-    b = TorusKnot({ scale:2 }).spin(.001)
-
-    c = Dots()
-    c.scale = Master.Out
-*/
 });

@@ -8,6 +8,11 @@ Please contact snaglee@umich.edu for more detail.
 
 # history
 
+0.1.0 (Sep. 16 2015)
+* Textarea Ctrl/Cmd key fixed
+* Codemirror as a main editor (instead of textarea)
+
+
 0.0.3 (Feb. 26 2015)
 * Special characters supported
 * Carrige return problem resolved

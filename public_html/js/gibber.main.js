@@ -74,7 +74,7 @@ $(document).ready(function () {
             escClose :false
         });
         
-        editor.livewritingMessage("post","/post",function(state, aid){
+        editor.livewritingMessage("post","/post",null, function(state, aid){
            $('#post-message').bPopup().close();
             articlelink = resetlink+"?aid="+aid;
             $('#post-complete-message').bPopup({

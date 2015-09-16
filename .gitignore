@@ -1,2 +1,4 @@
 
 lib/data/*
+node_modules/*
+*.log
