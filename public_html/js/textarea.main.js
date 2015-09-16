@@ -34,7 +34,7 @@ $(document).ready(function () {
             positionStyle: 'absolute',
             escClose :false
         });
-        $("#livetext").livewritingMessage("post","/post",function(state, aid){
+        $("#livetext").livewritingMessage("post","/post",null, function(state, aid){
 
             $('#post-message').bPopup().close();
             articlelink = resetlink+"?aid="+aid;
