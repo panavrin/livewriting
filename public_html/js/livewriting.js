@@ -418,6 +418,14 @@
             it.lw_justAdded = true;
             if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
         },
+        changeAceFunc = function(event, editor){
+            var it = editor;
+            var timestamp = (new Date()).getTime()- it.lw_startTime,
+                index = it.lw_liveWritingJsonData.length;
+            if (event.action == "remove") delete event.lines; // to reduce data
+            it.lw_liveWritingJsonData[index] = {"p":"c", "t":timestamp, "d":event};
+            if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        },
         viewPortchangeCodeMirrorFunc= function(cm,from,to){// this is only for codemirror /
             var it = cm.getDoc().getEditor();
             var timestamp = (new Date()).getTime()- it.lw_startTime,
@@ -426,9 +434,29 @@
             it.lw_liveWritingJsonData[index] = {"p":"s", "t":timestamp, "f":scrollinfo.left, "to":scrollinfo.top};
             if(DEBUG)console.log("viewPortChange event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
         }
-        ,
+        ,scrollLeftAceFunc = function(editor, number){
+            var it = editor;
+            var timestamp = (new Date()).getTime()- it.lw_startTime,
+                index = it.lw_liveWritingJsonData.length;
+            it.lw_liveWritingJsonData[index] = {"p":"s", "t":timestamp, "n":number, "y":"left"};
+            if(DEBUG)console.log("viewPortChange event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        }
+        ,scrollTopAceFunc = function(editor, number){
+            var it = editor;
+            var timestamp = (new Date()).getTime()- it.lw_startTime,
+                index = it.lw_liveWritingJsonData.length;
+            it.lw_liveWritingJsonData[index] = {"p":"s", "t":timestamp, "n":number, "y":"top"};
+            if(DEBUG)console.log("viewPortChange event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        },
+        cursorAceFunc = function(event, editor){
+          var it = editor;
+          var timestamp = (new Date()).getTime()- it.lw_startTime,
+              index = it.lw_liveWritingJsonData.length;
+          it.lw_liveWritingJsonData[index] = {"p":"u", "t":timestamp, "d":editor.session.selection.getRange(), "b": editor.session.selection.isBackwards() + 0};
+          if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
+        },
         // the following function is for codemirror only.
-        cursorFunc = function(cm){
+        cursorCodeMirrorFunc = function(cm){
 
             var it = cm.getDoc().getEditor();
             if ( it.lw_justAdded ) {
@@ -475,21 +503,11 @@
             data.splice(0,1);
             if (data.length==0){
                 if(DEBUG)console.log("done at " + currentTime);
-                if (it.lw_type == "textarea"){
-                    if ( it.lw_finaltext != it.value)
-                    {
-                        console.log("There is discrepancy. Do something");
-                        if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.value);
-                    }
-                }
-                else if ( it.lw_type == "codemirror")
+                if ( it.lw_finaltext != it.getValue())
                 {
-                    if ( it.lw_finaltext != it.getValue())
-                    {
 
-                        console.log("There is discrepancy. Do something");
-                        if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
-                    }
+                    console.log("There is discrepancy. Do something");
+                    if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
                 }
                 return;
             }
@@ -498,11 +516,77 @@
             var actualInterval = currentTime - prevTime;
             if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
 
-
             if (INSTANTPLAYBACK) nextEventInterval =0;
             setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
         },
         triggerPlayAceFunc =  function(data, startTime, prevTime){
+          var it = this;
+          var currentTime = (new Date()).getTime(),
+              event = data[0];
+          it.focus();
+          if(DEBUG) console.log(JSON.stringify(event));
+          if (event['p'] == "c"){ // change in content
+
+              var inputData    = event['d'];
+              var startLine = inputData['start']['row'],
+                  startCh = inputData['start']['column'],
+                  endLine = inputData['end']['row'],
+                  endCh = inputData['end']['column'];
+
+              if (inputData.action == "insert"){ // change in content
+                var textLines = inputData['lines'].join('\n');
+                //it.moveCursorTo(startLine,startCh); // IDEA: PROBABLY you don't need this cuz cursor should be already there.
+                it.insert(textLines);
+              }else if (inputData.action == "remove"){ // change in content
+                //var range = new it.lw_ace_Range(startLine, startCh,endLine, endCh );
+                it.session.doc.remove(inputData);
+              }
+              else{
+                if(DEBUG)alert("ace editor has another type of action other than \"remove\" and \"insert\": " + inputData.action);
+              }
+
+          }
+          else if (event['p'] == "u"){ // cursor change
+              it.session.selection.setSelectionRange(event['d'], Boolean(event['b']));
+          }
+          else if (event['p'] == "i"){ //  user input
+              var number = (event['n'] ? event['n'] : 0)
+              // TODO : run error handling (in case it is not registered. )
+              it.userInputRespond[number](event['d']);
+          }
+          else if (event['p'] == "s"){ // scroll
+              if (event["y"] == "left"){
+                it.session.setScrollLeft(event["n"]);
+              }else if (event["y"] == "top")
+              {
+                it.session.setScrollTop(event["n"]);
+              }
+              else{
+                if(DEBUG) alert("unknown scorll type for ace editor: " +event["y"] )
+              }
+          }
+          data.splice(0,1);
+          if (data.length==0){
+              if(DEBUG)console.log("done at " + currentTime);
+              if ( it.lw_type == "codemirror")
+              {
+                  if ( it.lw_finaltext != it.getValue())
+                  {
+
+                      console.log("There is discrepancy. Do something");
+                      if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
+                  }
+              }
+              return;
+          }
+          // scheduling part
+          var nextEventInterval = startTime + data[0]["t"]/it.lw_playback -  currentTime;
+          var actualInterval = currentTime - prevTime;
+          if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
+
+
+          if (INSTANTPLAYBACK) nextEventInterval =0;
+          setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
         }
         ,triggerPlayTextareaFunc =  function(data, startTime, prevTime){
             var it = this;
@@ -729,19 +813,21 @@
                     readMode:null,
                     noDataMsg:"I know you feel in vain but do not have anything to store yet. ",
                     leaveWindowMsg:'You haven\'t finished your post yet. Do you want to leave without finishing?'
-                },
-                settings =  $.extend(defaults, options);
+                };
+                it.lw_settings =  $.extend(defaults, options);
                 //Iterate over the current set of matched elements
                 it.lw_type = type;
-                it.lw_name  = settings.name;
-                it.lw_startTime = settings.startTime = (new Date()).getTime();
-                if(DEBUG)console.log("starting time:" + settings.startTime);
+                it.lw_startTime = (new Date()).getTime();
+                if(DEBUG)console.log("starting time:" + it.lw_startTime);
                 if(type == "codemirror")
                     it.lw_triggerPlay = triggerPlayCodeMirrorFunc;
                 else if (type == "textarea")
                     it.lw_triggerPlay = triggerPlayTextareaFunc;
-                else if (type == "ace")
+                else if (type == "ace"){
                     it.lw_triggerPlay = triggerPlayAceFunc;
+                    it.lw_ace_Range = ace.require("ace/range").Range;
+                }
+
                 it.lw_liveWritingJsonData = [];
                 it.lw_initialText = initialValue;
                 it.lw_mostRecentValue = initialValue;
@@ -762,11 +848,11 @@
                            it.setOption("placeholder","");
                         }
                     }
-                    createNavBar(it, type );
+                  //  createNavBar(it, type );
                     playbackbyAid(it, aid);
                     it.lw_writemode = false;
-                    if(settings.readMode != null)
-                        settings.readMode();
+                    if(it.lw_settings.readMode != null)
+                        it.lw_settings.readMode();
                     // TODO handle user input?
                     //preventDefault ?
                     //http://forums.devshed.com/javascript-development-115/stop-key-input-textarea-566329.html
@@ -791,25 +877,26 @@
                     }
                     else if (type == "codemirror"){
                         it.on("change", changeCodeMirrorFunc);
-                        it.on("cursorActivity", cursorFunc);
+                        it.on("cursorActivity", cursorCodeMirrorFunc);
                         it.on("scroll", viewPortchangeCodeMirrorFunc)
                     }
                     else if (type == "ace"){
-                      it.on("change", function(e,v,g){
-                        console.log("changed");
+                      it.on("change", changeAceFunc);
+                      it.on("changeCursor", cursorAceFunc);
+                      it.on("changeSelection", cursorAceFunc);
+                      it.session.on("changeScrollLeft", function(number){
+                        scrollLeftAceFunc(it,number); // this is needed to pass the editor instance. by deafult it has edit session.
                       });
-
-                    //    it.on("change", changeCodeMirrorFunc);
-                    //  it.on("cursorActivity", cursorFunc);
-                    //    it.on("scroll", viewPortchangeCodeMirrorFunc)
+                      it.session.on("changeScrollTop", function(number){
+                        scrollTopAceFunc(it,number); /// this is needed to pass the editor instance.by deafult it has edit session.
+                      });
                     }
 
                     it.onUserInput = userinputTextareaFunc;
-
                     it.lw_writemode = true;
                     it.lw_dragAndDrop = false;
-                    if(settings.writeMode != null)
-                        settings.writeMode();
+                    if(it.lw_settings.writeMode != null)
+                        it.lw_settings.writeMode();
                     $(window).onbeforeunload = function(){
                         return setting.levaeWindowMsg;
                     };
@@ -838,7 +925,8 @@
         }
         ,postData = function(it, url, useroptions, respondFunc){
             if (it.lw_liveWritingJsonData.length==0){
-                alert(settings.noDataMsg);
+                alert(it.lw_settings.noDataMsg);
+                respondFunc(false);
                 return;
             }
 
@@ -869,7 +957,7 @@
             it.focus();
             url = (url ? url : "play")
 
-            if(DEBUG)console.log(it.lw_name);
+            if(DEBUG)console.log(it.lw_settings.name);
             $.post(url, JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
                 var json_file=JSON.parse(jqXHR.responseText);
                 it.lw_version = json_file["version"];
@@ -897,7 +985,7 @@
         },
         playbackbyJson = function(it,json_file){
             it.focus();
-            if(DEBUG)console.log(it.lw_name);
+            if(DEBUG)console.log(it.lw_settings.name);
             it.lw_version = json_file["version"];
             it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
             it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea

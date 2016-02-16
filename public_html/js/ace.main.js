@@ -1,12 +1,10 @@
 
 
 $(document).ready(function () {
-   var resetlink = localServerLink;
-   var aboutlink = resetlink + "?aid=aboutechobin";
+   var resetlink = localServerLink + "/index_ace.html";
+   var aboutlink = resetlink + "/index_ace.html?aid=aboutechobin";
 
-   function cursorAct(cm){
-       console.log("cursorAct : " + cm.getSelection());
-   }
+   
    //var editor = $("#livetext");
    var editor = ace.edit("editor");
    editor.setTheme("ace/theme/monokai");
@@ -47,17 +45,21 @@ $(document).ready(function () {
           // var localTime = new Date();
 
            useroptions["servertime"] = response;
-           editor.livewritingMessage("post","/post", useroptions, function(state, aid){
-          $('#post-message').bPopup().close();
-           articlelink = resetlink+"?aid="+aid;
-               $('#post-complete-message').bPopup({
-               modalClose: false,
-               opacity: 0.7,
-               positionStyle: 'absolute',
-               escClose :false
-               });
-               $("#post-link").text(articlelink);
-               ZeroClipboard.setData( "text/plain", articlelink);
+           editor.livewritingMessage("post","/post", useroptions, function(success, aid){
+             $('#post-message').bPopup().close();
+
+             if (!success){
+                return;
+             }
+             articlelink = resetlink+"?aid="+aid;
+             $('#post-complete-message').bPopup({
+             modalClose: false,
+             opacity: 0.7,
+             positionStyle: 'absolute',
+             escClose :false
+             });
+             $("#post-link").text(articlelink);
+             ZeroClipboard.setData( "text/plain", articlelink);
            });
        })
        .fail(function(response) {
