@@ -3,3 +3,6 @@ lib/data/*
 node_modules/*
 *.log
 ./public_html/js/localsetting.js
+public_html/js/localsetting.js
+
+public_html/js/localsetting.js

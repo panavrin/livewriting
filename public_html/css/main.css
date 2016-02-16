@@ -20,6 +20,11 @@ padding:15px;
 .centre {
 }
 
+#livewriting_slider{
+  position: relative;
+  bottom: 0px;
+}
+
 
 a:link {
 color:inherit;
@@ -41,7 +46,7 @@ a:active {
     color: #102040;
     text-decoration-style: solid;
 
-} 
+}
 
 .buttons{
     text-align: center;
@@ -67,7 +72,7 @@ textarea {  /* position is inherited */
     font-family: Courier New;
 }
  .slider{
-     font-family: Courier New;   
+     font-family: Courier New;
     background-color: #aa9999;
     color: black;
     opacity:0.5;
@@ -81,7 +86,7 @@ pre.CodeMirror-placeholder
 }
 
 .CodeMirror {
-    border: 0px solid gray; 
+    border: 0px solid gray;
     font-size:24px;
     opacity:0.8;
     margin: auto;
@@ -124,11 +129,11 @@ box-shadow: 3px 0 6px 3px gray;
     border:1px solid black;
     background-color:#EEEEFF;
     width:90%;
-    overflow:auto;    
+    overflow:auto;
     padding:10px;
 }
 .dialog-message{
-    font-family: Courier New;   
+    font-family: Courier New;
     width:50%;
     margin:20px;
     padding: 5px 20px 13px 20px;
@@ -140,7 +145,7 @@ box-shadow: 3px 0 6px 3px gray;
 }
 
 .ui-button-text{
-    font-family: Courier New;   
+    font-family: Courier New;
     font-weight:normal;
     color:white;
     background: #333;
@@ -154,6 +159,6 @@ box-shadow: 3px 0 6px 3px gray;
 .ui-widget-overlay{
    background:#333;
     opacity:.5;
-     z-index: 0;   
+     z-index: 0;
 }
 */
