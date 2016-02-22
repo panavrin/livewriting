@@ -11,6 +11,7 @@
 
     var DEBUG = false,
         INSTANTPLAYBACK = false,
+        SLIDER_UPDATE_INTERVAL = 100,
         randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
         keyup_debug_color_index=0,
         keydown_debug_color_index=0,
@@ -422,7 +423,7 @@
             var it = editor;
             var timestamp = (new Date()).getTime()- it.lw_startTime,
                 index = it.lw_liveWritingJsonData.length;
-            if (event.action == "remove") delete event.lines; // to reduce data
+            //if (event.action == "remove") delete event.lines; // we need this to create an inverse operation.
             it.lw_liveWritingJsonData[index] = {"p":"c", "t":timestamp, "d":event};
             if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
         },
@@ -471,10 +472,29 @@
 
             if(DEBUG)console.log("cursor event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
         },
-        triggerPlayCodeMirrorFunc = function(data, startTime, prevTime){
+        scheduleNextEventFunc = function(){
+          // scheduling part
+          var it = this;
+          if(it.lw_pause)
+            return;
+          var startTime = it.lw_startTime;
+          var currentTime = (new Date()).getTime();
+          var nextEventInterval = startTime + it.lw_data[it.lw_data_index]["t"]/it.lw_playback -  currentTime;
+
+          if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " currentData:",JSON.stringify(it.lw_data[0]));
+          // let's catch up some of the old changes.
+          while(it.lw_data[it.lw_data_index] != undefined
+            && nextEventInterval<0 && it.lw_data_index < it.lw_data.length-1){
+            it.lw_triggerPlay(false, true);
+            nextEventInterval = startTime + it.lw_data[it.lw_data_index]["t"]/it.lw_playback -  currentTime;
+          }
+          if (INSTANTPLAYBACK) nextEventInterval = 0;
+           // recurring trigger
+          it.lw_next_event = setTimeout(function(){it.lw_triggerPlay();}, nextEventInterval);
+        },
+        triggerPlayCodeMirrorFunc = function(){
             var it = this;
-            var currentTime = (new Date()).getTime(),
-                event = data[0];
+            var event = it.lw_data[it.lw_data_index];
             it.getDoc().getEditor().focus();
             if(DEBUG) console.log(JSON.stringify(event));
             if (event['p'] == "c"){ // change in content
@@ -487,7 +507,6 @@
                     inputType = inputData['origin '];
                 it.getDoc().setSelection(inputData['from'], inputData['to'], {scroll:true});
                 it.getDoc().replaceSelection(text);
-
             }
             else if (event['p'] == "u"){ // cursor change
                 it.getDoc().setSelection(event['s'], event['e'], {scroll:true});
@@ -500,31 +519,33 @@
             else if (event['p'] == "s"){ // scroll
                 it.scrollTo(event["f"], event["to"]);
             }
-            data.splice(0,1);
-            if (data.length==0){
-                if(DEBUG)console.log("done at " + currentTime);
+            it.lw_data_index++;
+            // chcek the final text once it is done.
+
+            if (it.lw_data_index == it.lw_data.length){
+                if(DEBUG)console.log("done replay");
+                // let's stay in the final index
+                it.lw_data_index = it.lw_data.length -1;
                 if ( it.lw_finaltext != it.getValue())
                 {
-
                     console.log("There is discrepancy. Do something");
                     if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
                 }
+                // change the play button to pause.
                 return;
             }
             // scheduling part
-            var nextEventInterval = startTime + data[0]["t"]/it.lw_playback -  currentTime;
-            var actualInterval = currentTime - prevTime;
-            if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
+            it.lw_scheduleNextEvent();
 
-            if (INSTANTPLAYBACK) nextEventInterval =0;
-            setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
         },
-        triggerPlayAceFunc =  function(data, startTime, prevTime){
+        triggerPlayAceFunc =  function(reverse, skipSchedule){
           var it = this;
-          var currentTime = (new Date()).getTime(),
-              event = data[0];
+          var event = it.lw_data[it.lw_data_index];
+          if(event == undefined){
+            if(DEBUG) alert("no event for index: " + it.lw_data_index);
+          }
           it.focus();
-          if(DEBUG) console.log(JSON.stringify(event));
+          if(DEBUG) console.log("reverse:" + reverse + " " + JSON.stringify(event));
           if (event['p'] == "c"){ // change in content
 
               var inputData    = event['d'];
@@ -534,12 +555,24 @@
                   endCh = inputData['end']['column'];
 
               if (inputData.action == "insert"){ // change in content
-                var textLines = inputData['lines'].join('\n');
-                //it.moveCursorTo(startLine,startCh); // IDEA: PROBABLY you don't need this cuz cursor should be already there.
-                it.insert(textLines);
+                if(reverse){
+                  it.session.doc.remove(inputData);
+                }
+                else{
+                  var textLines = inputData['lines'].join('\n');
+                  it.moveCursorTo(startLine,startCh);
+                  it.insert(textLines);
+                }
               }else if (inputData.action == "remove"){ // change in content
                 //var range = new it.lw_ace_Range(startLine, startCh,endLine, endCh );
-                it.session.doc.remove(inputData);
+                if(reverse){
+                  var textLines = inputData['lines'].join('\n');
+                  it.moveCursorTo(startLine,startCh);
+                  it.insert(textLines);
+                }
+                else{
+                  it.session.doc.remove(inputData);
+                }
               }
               else{
                 if(DEBUG)alert("ace editor has another type of action other than \"remove\" and \"insert\": " + inputData.action);
@@ -565,33 +598,37 @@
                 if(DEBUG) alert("unknown scorll type for ace editor: " +event["y"] )
               }
           }
-          data.splice(0,1);
-          if (data.length==0){
-              if(DEBUG)console.log("done at " + currentTime);
-              if ( it.lw_type == "codemirror")
-              {
-                  if ( it.lw_finaltext != it.getValue())
-                  {
+          if(reverse){
+            it.lw_data_index--;
 
-                      console.log("There is discrepancy. Do something");
-                      if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
-                  }
+          }else {
+            it.lw_data_index++;
+          }
+
+          // chcek the final text once it is done.
+          if (it.lw_data_index == it.lw_data.length){
+              if(DEBUG)console.log("done replay");
+              it.lw_data_index = it.lw_data.length -1;
+
+              if ( it.lw_finaltext != it.getValue())
+              {
+                  console.log("There is discrepancy. Do something");
+                  if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.lw_finaltext +":"+ it.getValue());
               }
+
+              $('.play').trigger("click");
+
               return;
           }
-          // scheduling part
-          var nextEventInterval = startTime + data[0]["t"]/it.lw_playback -  currentTime;
-          var actualInterval = currentTime - prevTime;
-          if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
 
+          // scheduling part (only if this is not reverse operation)
+          if (!skipSchedule)
+            it.lw_scheduleNextEvent();
 
-          if (INSTANTPLAYBACK) nextEventInterval =0;
-          setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
         }
-        ,triggerPlayTextareaFunc =  function(data, startTime, prevTime){
+        ,triggerPlayTextareaFunc =  function(){
             var it = this;
-            var currentTime = (new Date()).getTime(),
-                event = data[0];
+            var event = it.lw_data[it.lw_data_index];
 
             // do somethign here!
             var selectionStart =event['s'];
@@ -764,45 +801,197 @@
                 setCursorPosition(it, selectionStart, selectionEnd);
             }
 
-            data.splice(0,1);
-            if (data.length==0){
-                if(DEBUG)console.log("done at " + currentTime);
-                if (it.version >=3 && it.finaltext != it.value){
+            it.lw_data_index++;
+            // chcek the final text once it is done.
+            if (it.lw_data_index == it.lw_data.length){
+                if(DEBUG)console.log("done replay");
+                it.lw_data_index = it.lw_data.length -1;
+
+                if (it.lw_finaltext != it.value){
                     console.log("There is discrepancy. Do something");
-                    if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.value);
+                    if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.lw_finaltext +":"+ it.value);
                 }
                 return;
             }
-            var nextEventInterval = startTime + data[0]["t"]/it.lw_playback -  currentTime;
-            var actualInterval = currentTime - prevTime;
-            if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " actualInterval:" + actualInterval+ " currentData:",JSON.stringify(data[0]));
-
-           if(it.selectionStart == it.selectionEnd) {
-              //it.scrollTop = it.scrollHeight;
-            //   var e = $.Event( "mouseup", { which: 1 } );
-               // Triggers it on the body.
-              // it.trigger(e);
-           }
-            if (INSTANTPLAYBACK) nextEventInterval =0;
-            setTimeout(function(){it.lw_triggerPlay(data,startTime,currentTime);}, nextEventInterval);
-//              setTimeout(function(){self.triggerPlay(data,startTime);}, 1000);
+            // scheduling part
+            it.lw_scheduleNextEvent();
         },
-        createNavBar = function(it, type){
-          if(DEBUG)console.log("create Navigation Bar");
-          /*
-          TODO : only codemirror is tested.
-          */
-          if ( type == "codemirror"){
-            $('.CodeMirror').after("<div class = 'livewriting_navbar'></div>");
-            var navbar = $('.livewriting_navbar');
-            navbar.append("<div class = 'livewriting_slider'></div>");
-            var slider  =   $('.livewriting_slider').slider();
-            navbar.css("position", "relative");
-            navbar.css("bottom", "100px");
-            navbar.css("width", "80%");
-            navbar.css("left", "10%");
+        updateSlider = function(it){
+          if(it.lw_pause) return;
+          var currentTime = (new Date()).getTime();
 
+          $(".livewriting_slider").slider("value",(currentTime -  it.lw_startTime) * it.lw_playback);
+          if ( (currentTime -  it.lw_startTime) * it.lw_playback > it.lw_endTime){
+            livewritingPause(it);
+            return;
           }
+          setTimeout(function(){
+              updateSlider(it);
+          },SLIDER_UPDATE_INTERVAL);
+
+        },
+        livewritingResume = function(it){
+          var options = {
+            label: "pause",
+            icons: {
+              primary: "ui-icon-pause"
+            }
+          };
+
+          $( "#lw_toolbar_play" ).button( "option", options );
+          it.lw_pause = false;
+          var time  = $(".livewriting_slider").slider("value");
+          var currentTime = (new Date()).getTime();
+          it.lw_startTime = currentTime - time / it.lw_playback;
+          //it.lw_resumedTime = (new Date()).getTime();
+          //it.lw_startTime = it.lw_startTime + (it.lw_resumedTime - it.lw_pausedTime);
+          it.lw_scheduleNextEvent();
+          updateSlider(it);
+        },
+        sliderGoToEnd = function(it){
+          var max = $( ".livewriting_slider" ).slider( "option", "max" );
+          it.setValue(it.lw_finaltext);
+          it.moveCursorTo(0,0);
+          it.lw_data_index = it.lw_data.length-1;
+          //sliderEventHandler(it,max);
+          livewritingPause(it);
+          $(".livewriting_slider").slider("value", max);
+        },
+        sliderGoToBeginning = function(it){
+          //sliderEventHandler(it,0);
+          it.setValue(it.lw_initialText)
+          it.lw_data_index = 0;
+          livewritingPause(it);
+          $(".livewriting_slider").slider("value", 0);
+        },
+        livewritingPause = function(it){
+          it.lw_pause = true;
+          clearTimeout(it.lw_next_event);
+          var options = {
+            label: "play",
+            icons: {
+              primary: "ui-icon-play"
+            }
+          };
+          $("#lw_toolbar_play" ).button( "option", options );
+        },
+        configureToolbar= function(it){
+          $("#lw_toolbar").toggleClass(".ui-widget-header");
+          $( "#lw_toolbar_beginning" ).button({
+            text: false,
+            icons: {
+              primary: "ui-icon-seek-start"
+            }
+          }).click(function(){
+            sliderGoToBeginning(it);
+          });
+          $( "#lw_toolbar_slower" ).button({
+            text: false,
+            icons: {
+              primary: "ui-icon-minusthick"
+            }
+          }).click(function(){
+
+            it.lw_playback = it.lw_playback / 2.0;
+            if (it.lw_playback <0.25){
+              it.lw_playback *= 2.0;
+            }
+
+            var time  = $(".livewriting_slider").slider("value");
+            var currentTime = (new Date()).getTime();
+            it.lw_startTime = currentTime - time/it.lw_playback;
+
+            $("#livewriting_speed").text(it.lw_playback);
+          });
+          $( "#lw_toolbar_play" ).button({
+            text: false,
+            icons: {
+              primary: "ui-icon-pause"
+            }
+          })
+          .click(function() {
+            var options;
+            if ( $( this ).text() === "pause" ) {
+              livewritingPause(it);
+            } else {
+              livewritingResume(it);
+            }
+            $( this ).button( "option", options );
+          });
+          $( "#lw_toolbar_faster" ).button({
+            text: false,
+            icons: {
+              primary: "ui-icon-plusthick"
+            }
+          }).click(function(){
+            it.lw_playback = it.lw_playback * 2.0;
+            if (it.lw_playback > 64.0){
+              it.lw_playback /= 2.0;
+            }
+            var time  = $(".livewriting_slider").slider("value");
+            var currentTime = (new Date()).getTime();
+            it.lw_startTime = currentTime - time/it.lw_playback;
+
+            $("#livewriting_speed").text(it.lw_playback);
+          });
+          $( "#lw_toolbar_end" ).button({
+            text: false,
+            icons: {
+              primary: "ui-icon-seek-end"
+            }
+          }).click(function(){
+            sliderGoToEnd(it);
+          });
+        },
+        sliderEventHandler = function(it,value){
+          var time  = value ;
+          var currentTime = (new Date()).getTime();
+          it.lw_startTime = currentTime - time/it.lw_playback;
+          if (!it.lw_pause)
+            clearTimeout(it.lw_next_event);
+          // this while loop handle slider move regardless it is playing or not.
+          while(time < it.lw_data[it.lw_data_index].t){
+            it.lw_triggerPlay(true, true);
+            if (it.lw_data_index < 0){
+              it.lw_data_index =0;
+              break;
+            }
+          }
+
+          // this handles forward when pause.
+          //if(it.lw_pause){
+          while(it.lw_data[it.lw_data_index+1] != undefined
+            && time > it.lw_data[it.lw_data_index+1].t){
+            it.lw_triggerPlay(false, true);
+          }
+          if (!it.lw_pause)
+            it.lw_scheduleNextEvent();
+          //}
+        },
+        createNavBar = function(it){
+          if(DEBUG)console.log("create Navigation Bar");
+          var end_time = it.lw_data[it.lw_data.length-1]["t"];
+          if(DEBUG) console.log("slider end time : " + end_time);
+          // ending Time
+          if ( it.lw_type == "ace"){
+            $('.ace_editor').after("<div class = 'livewriting_navbar'></div>");
+            var navbar = $('.livewriting_navbar');
+            navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button></div>')
+            navbar.append('<div id="lw_toolbar" class="livewriting_navbar_speed"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
+            navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
+
+            configureToolbar(it);
+
+            var slider  =   $('.livewriting_slider').slider({
+              min: 0,
+              max : end_time,
+              slide: function(event,ui){
+                sliderEventHandler(it,ui.value);
+              }
+            });
+
+            updateSlider(it);
+          } // end of ace.
         },
         createLiveWritingTextArea= function(it, type, options, initialValue){
                 var defaults = {
@@ -818,15 +1007,8 @@
                 //Iterate over the current set of matched elements
                 it.lw_type = type;
                 it.lw_startTime = (new Date()).getTime();
+
                 if(DEBUG)console.log("starting time:" + it.lw_startTime);
-                if(type == "codemirror")
-                    it.lw_triggerPlay = triggerPlayCodeMirrorFunc;
-                else if (type == "textarea")
-                    it.lw_triggerPlay = triggerPlayTextareaFunc;
-                else if (type == "ace"){
-                    it.lw_triggerPlay = triggerPlayAceFunc;
-                    it.lw_ace_Range = ace.require("ace/range").Range;
-                }
 
                 it.lw_liveWritingJsonData = [];
                 it.lw_initialText = initialValue;
@@ -848,7 +1030,6 @@
                            it.setOption("placeholder","");
                         }
                     }
-                  //  createNavBar(it, type );
                     playbackbyAid(it, aid);
                     it.lw_writemode = false;
                     if(it.lw_settings.readMode != null)
@@ -921,6 +1102,8 @@
                 data["finaltext"] = it.value;
             else if (it.lw_type == "codemirror")
                 data["finaltext"] = it.getValue();
+            else if (it.lw_type == "ace")
+                data["finaltext"] = it.getValue();
             return data;
         }
         ,postData = function(it, url, useroptions, respondFunc){
@@ -954,55 +1137,59 @@
             });
         },
         playbackbyAid = function(it, articleid, url){
-            it.focus();
-            url = (url ? url : "play")
 
+            url = (url ? url : "play")
             if(DEBUG)console.log(it.lw_settings.name);
             $.post(url, JSON.stringify({"aid":articleid}), function(response, textStatus, jqXHR) {
                 var json_file=JSON.parse(jqXHR.responseText);
-                it.lw_version = json_file["version"];
-                it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
-                it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea
-                it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:null);
-                it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:null);
-                it.value = it.lw_initialText;
-                var data=json_file["action"];
-                if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
-
-                if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" + jqXHR.responseText);
-
-                var currTime = (new Date()).getTime();
-                setTimeout(function(){
-                    it.lw_triggerPlay(data,currTime,currTime);
-                },data[0]['t']/it.lw_playback);
-                var startTime = currTime + data[0]['t']/it.lw_playback;
-                if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(data[0]));
-
+                playbackbyJson(it, json_file);
             }, "text")
             .fail(function( jqXHR, textStatus, errorThrown) {
                 alert("LiveWritingAPI: play failed: " + jqXHR.responseText );
             });
         },
         playbackbyJson = function(it,json_file){
-            it.focus();
+
+          if(it.lw_type == "codemirror")
+              it.lw_triggerPlay = triggerPlayCodeMirrorFunc;
+          else if (it.lw_type == "textarea")
+              it.lw_triggerPlay = triggerPlayTextareaFunc;
+          else if (it.lw_type == "ace"){
+              it.lw_triggerPlay = triggerPlayAceFunc;
+              it.lw_ace_Range = ace.require("ace/range").Range;
+              it.setReadOnly(true);
+          }
+          it.lw_scheduleNextEvent = scheduleNextEventFunc;
+
+          it.focus();
+
             if(DEBUG)console.log(it.lw_settings.name);
             it.lw_version = json_file["version"];
             it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
             it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea
             it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:null);
-            it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:null);
+            it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:"");
             it.value = it.lw_initialText;
-
-            var data=json_file["action"];
-            if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
+            it.lw_data_index = 0;
+            it.lw_data=json_file["action"];
+            it.lw_endTime = it.lw_data[it.lw_data.length-1].t;
+        //    if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
             if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" );
 
+
+
             var currTime = (new Date()).getTime();
+            createNavBar(it);
+            it.lw_startTime = currTime;
             setTimeout(function(){
-                it.lw_triggerPlay(data,currTime,currTime);
-            },data[0]['t']/it.lw_playback);
-            var startTime = currTime + data[0]['t']/it.lw_playback;
-            if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(data[0]));
+              if(it.lw_type == "ace"){
+                it.session.getMode().getNextLineIndent = function(){return "";}
+                it.session.getMode().checkOutdent = function(){return false;}
+              }
+              it.lw_triggerPlay(false); // initial trigger
+            },it.lw_data[0]['t']/it.lw_playback);
+            var startTime = currTime + it.lw_data[0]['t']/it.lw_playback;
+            if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + it.lw_data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(it.lw_data[0]));
 
         };
 

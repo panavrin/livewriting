@@ -4,13 +4,18 @@ Live Writing, a web-based writing platform where keystrokes are recorded with ti
 
 Demo is available at http://www.echobin.com/?aid=aboutechobin
 
-Please contact snaglee@umich.edu for more detail. 
+Please contact snaglee@umich.edu for more detail.
 
 # history
 
+
+0.2.0 (Feb. 22 2016)
+* Ace editor extended.
+* Time Navigation Bar (for ace editor) is added.
+
 0.1.0 (Sep. 16 2015)
-* Textarea Ctrl/Cmd key fixed 
-* Safari Keystroke difference handled. (when command key is pressed) 
+* Textarea Ctrl/Cmd key fixed
+* Safari Keystroke difference handled. (when command key is pressed)
 * Codemirror as a main editor (instead of textarea)
 
 
@@ -21,10 +26,10 @@ Please contact snaglee@umich.edu for more detail.
 * keycode to charcode on keypress
 
 0.0.2 (Jan. 16 2015)
-* Arrow, selection backspace handled. 
-* Cut, Copy, Paste supported. 
+* Arrow, selection backspace handled.
+* Cut, Copy, Paste supported.
 * Playback speed added
 * drag and drop insdie textarea support
-* scroll added 
- 
+* scroll added
+
 0.0.1 initial commit

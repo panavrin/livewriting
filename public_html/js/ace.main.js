@@ -1,10 +1,10 @@
 
 
 $(document).ready(function () {
-   var resetlink = localServerLink + "/index_ace.html";
-   var aboutlink = resetlink + "/index_ace.html?aid=aboutechobin";
+   var resetlink = localServerLink + "index_ace.html";
+   var aboutlink = localServerLink + "?aid=aboutechobin";
 
-   
+
    //var editor = $("#livetext");
    var editor = ace.edit("editor");
    editor.setTheme("ace/theme/monokai");
@@ -17,11 +17,11 @@ $(document).ready(function () {
            positionStyle: 'absolute',
            escClose :false
        });
-       $("#post").show(); // show the button if write mode
+       $("#postdata").show(); // show the button if write mode
    };
 
    var readModeFunc = function(){
-       $("#post").hide(); // hide the button if read mode
+       $("#postdata").hide(); // hide the button if read mode
    //    $("#reset").text("New");
    };
 
