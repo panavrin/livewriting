@@ -1,4 +1,4 @@
- 
+
 
 $(document).ready(function () {
     var resetlink = localServerLink;
@@ -11,16 +11,16 @@ $(document).ready(function () {
     var editor = CodeMirror.fromTextArea(document.getElementById("livetext"), {
         lineNumbers: false,
         styleActiveLine: false,
-        matchBrackets: false, 
+        matchBrackets: false,
         smartIndent : false,
         indentUnit:0,
         lineWrapping:true,
         mode:"Plain Text",
         height:"100%"
     });
-    
+
     editor.setSize("96%", "98%");
-    
+
     var writeModeFunc = function(){
          $('#initial-message').bPopup({
             modalClose: false,
@@ -28,16 +28,20 @@ $(document).ready(function () {
             positionStyle: 'absolute',
             escClose :false
         });
-        $("#post").show(); // show the button if write mode 
+        $("#postdata").show(); // show the button if write mode
+        $("#slider_toggle").hide();
     };
-    
+
     var readModeFunc = function(){
-        $("#post").hide(); // hide the button if read mode 
+        $("#postdata").hide(); // hide the button if read mode
     //    $("#reset").text("New");
+        $("#slider_toggle").show(); // show the button if write mode
+
     };
-    
+
     editor.livewritingMessage = $.fn.livewritingMessage;
     editor.livewritingMessage("create", "codemirror", {name: "Sang's first run in CodeMirror",   writeMode:writeModeFunc, readMode:readModeFunc});
+
 
     $("#postdata").button().css({ width: '150px', margin:'5px'}).click(function(){
          $('#post-message').bPopup({
@@ -50,8 +54,8 @@ $(document).ready(function () {
         var useroptions = {};
 
         $.get("/whattime",  function(response) {
-            // Live Writing server should return article id (aid) 
-           
+            // Live Writing server should return article id (aid)
+
             var serverTime = new Date(Number(response));
            // var localTime = new Date();
 
@@ -64,8 +68,8 @@ $(document).ready(function () {
                 opacity: 0.7,
                 positionStyle: 'absolute',
                 escClose :false
-                });  
-                $("#post-link").text(articlelink);    
+                });
+                $("#post-link").text(articlelink);
                 ZeroClipboard.setData( "text/plain", articlelink);
             });
         })
@@ -73,6 +77,17 @@ $(document).ready(function () {
             console.log("time request failed");
         });
     });
+
+    $("#slider_toggle").button().css({ width: '150px', margin:'5px'})
+    .click(function(){
+      var time_slider = $(".livewriting_navbar");
+
+      if(time_slider.length > 0){
+        //$(".livewriting_slider_wrapper").toggleClass("hidden");
+        $(".livewriting_navbar").toggle();
+      }
+    })
+
     $("#reset").button().css({ width: '150px', margin:'5px'}).click(function(){
         window.open(resetlink, '_self');
     });
@@ -81,7 +96,7 @@ $(document).ready(function () {
         $('#initial-message').bPopup().close();
         editor.livewritingMessage("reset");
         editor.focus();
-        $("#reset").show(); // hide the button if read mode 
+        $("#reset").show(); // hide the button if read mode
     });
 
     $(".about").button().css({ width: '150px', margin:'5px'}).click(function(){
@@ -99,7 +114,7 @@ $(document).ready(function () {
     } );
 
     $("#copytoclipboard").button().css({width:'250px', margine:'5px'});
-   
+
     var slider = $("#slider").slideReveal({
         width: 250,
         push: false,
@@ -127,7 +142,7 @@ $(document).ready(function () {
             obj.css({opacity:'0.5'});
         }
     });
-    
+
     editor.on("click",function(){
         slider.slideReveal("hide");
     });
@@ -138,14 +153,14 @@ $(document).ready(function () {
     } );
 
     $("#copytoclipboard").button().css({width:'250px', margine:'5px'});
-    
+
     $("#play").button().css({ width: '150px', margin:'5px'}).click(function(){
         var windowObjectReference = window.open(articlelink,"win2");
     });
     $("#close").button().css({ width: '150px', margin:'5px'}).click(function(){
         $('#post-complete-message').bPopup().close();
     });
-    
-   
-    
+
+
+
 });

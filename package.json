@@ -4,6 +4,7 @@
   "description": "live writing text area application",
   "dependencies": {
     "express": "^4.13.3",
-    "mime": "~1.2.7"
+    "mime": "~1.2.7",
+    "supercolliderjs-browser": "0.1.0"
   }
 }

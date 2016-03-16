@@ -23,7 +23,7 @@ ScissorVoice.prototype.stop = function(time){
     for (var i=0; i<it.oscs.length; i++){
         it.oscs[i].disconnect();
     }
-    
+
   }, Math.floor((time-context.currentTime)*1000));
 }
 
@@ -37,7 +37,7 @@ ScissorVoice.prototype.detune = function(detune){
 
 ScissorVoice.prototype.connect = function(target){
   this.output.node.connect(target);
-}   
+}
 
 var context = WX._ctx;
 function getRandomInt (min, max) {
@@ -45,7 +45,7 @@ function getRandomInt (min, max) {
 }
 
 function noteNum2Freq(num){
-    return Math.pow(2,(num-57)/12) * 440 
+    return Math.pow(2,(num-57)/12) * 440
 }
 
 function ADSR(){
@@ -56,7 +56,7 @@ function ADSR(){
 ADSR.prototype.noteOn= function(delay, A,D, peakLevel, sustainlevel){
     peakLevel = peakLevel || 0.3;
     sustainlevel = sustainlevel || 0.1;
-    
+
     this.node.gain.linearRampToValueAtTime(0.0,delay + context.currentTime);
     this.node.gain.linearRampToValueAtTime(peakLevel,delay + context.currentTime + A); // Attack
     this.node.gain.linearRampToValueAtTime(sustainlevel,delay + context.currentTime + A + D);// Decay
@@ -65,14 +65,14 @@ ADSR.prototype.noteOn= function(delay, A,D, peakLevel, sustainlevel){
 ADSR.prototype.noteOff= function(delay, R, sustainlevel){
     sustainlevel = sustainlevel || 0.1;
 
-    this.node.gain.linearRampToValueAtTime(sustainlevel,delay + context.currentTime );// Release   
-    this.node.gain.linearRampToValueAtTime(0.0,delay + context.currentTime + R);// Release   
-    
+    this.node.gain.linearRampToValueAtTime(sustainlevel,delay + context.currentTime );// Release
+    this.node.gain.linearRampToValueAtTime(0.0,delay + context.currentTime + R);// Release
+
 }
 
 ADSR.prototype.play= function(time, A,D,S,R, peakLevel, sustainlevel){
-    this.noteOn(time,A,D, peakLevel, sustainlevel); 
-    this.noteOff(time+A+D+S,R, sustainlevel); 
+    this.noteOn(time,A,D, peakLevel, sustainlevel);
+    this.noteOff(time+A+D+S,R, sustainlevel);
 }
 
 
@@ -83,66 +83,68 @@ function Envelope(){
 
 Envelope.prototype.noteOn= function(time, A,D,S,R){
   //  this.node.gain.linearRampToValueAtTime(0.0,context.currentTime);
-   
+
 }
 
 function Oscillator(noteNum, type){
     this.node = context.createOscillator();
   //  this.node.connect(compressor);
     this.node.frequency.value = noteNum2Freq(noteNum);
-    this.node.type = this.node.SINE;
+    this.node.type = type;
     this.playing = false;
-    if ( type != null)
+    if ( type != null && (type == "sine"
+    || type == "square"
+    || type =="sawtooth"
+    || type == "triangle"))
     {
-        this.node.type = this.node[type];
+        this.node.type = type;
     }
 }
 
 Oscillator.prototype.play = function(time){
 
     this.node.start(time);
-    
-}
 
+}
 
 Oscillator.prototype.stop = function( time){
         this.node.stop(time);
 }
 
-
 window.onload = function() {
-    var DEBUG = false;    
+    var DEBUG = false;
     var  randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
        keyup_debug_color_index=0,
        keydown_debug_color_index=0,
        keypress_debug_color_index=0;
-    
+
     if (!hasGetUserMedia()) {
         alert('getUserMedia() is not supported in your browser. Please visit http://caniuse.com/#feat=stream to see web browsers available for this demo.');
     }
 //
     $("#hide").click(function(){
-        // remove select 
+        // remove select
         $("#micselect").hide();
     });
+
     // set up forked web audio context, for multiple browsers
     // window. is needed otherwise Safari explodes
 
     var volume = 0;
     var freqIndex;
-    
+
     navigator.getUserMedia = (navigator.getUserMedia ||
                               navigator.webkitGetUserMedia ||
                               navigator.mozGetUserMedia ||
                               navigator.msGetUserMedia);
     var level_original = context.createGain();
-    var level_reverb = context.createGain(); 
-    var convolver = context.createConvolver();
+    var level_reverb = context.createGain();
+    var pitch_convolver = context.createConvolver();
     var reverb = context.createConvolver();
     var reverb2 = context.createConvolver();
     var chatter = context.createBufferSource();
-    var chatter_filterGain = context.createGain(); 
-    var chatter_reverbGain = context.createGain(); 
+    var chatter_filterGain = context.createGain();
+    var chatter_reverbGain = context.createGain();
     var sourceMic;
     var sourceBuiltInMic;
 
@@ -152,6 +154,7 @@ window.onload = function() {
     var noiseBurstadsr = new ADSR();
     var noiseBurstAnalyser = context.createAnalyser();
     var noiseBurstOn = false;
+
     noiseBurstAnalyser.smoothingTimeConstant = 0.3;
     noiseBurstAnalyser.fftSize = 512;
 
@@ -162,51 +165,39 @@ window.onload = function() {
 
     reverseGate.to(delay).to(level_original);
 
-    //var javascriptNode = context.createScriptProcessor(2048, 1, 1);
     var compressor = context.createDynamicsCompressor();
     var masterGain = context.createGain();
     var analyser = context.createAnalyser();
-     // chatter.connect(reverb);
+
     var noise = WX.Noise({ output: 0.25 });
     var fbank = WX.FilterBank();
     var cverb = WX.ConVerb({ mix: 0.85 });
 
     analyser.smoothingTimeConstant = 0.3;
     analyser.fftSize = 512;
-    
+
     masterGain.gain.value =1.0;
     level_reverb.gain.value = 0.0;
     level_original.gain.value = 1.0;
-    
+
     chatter_filterGain.gain.value = 1.0;
     chatter_reverbGain.gain.value = 0.0;
 
     compressor.threshold.value = 10;
     compressor.ratio.value = 20;
     compressor.reduction.value = -20;
-    
+
     filter.type = (typeof filter.type === 'string') ? 'bandpass' : 0; // LOWPASS
     filter.frequency.value = 500;
 
     //connection
     compressor.connect(masterGain)
     masterGain.connect(context.destination);
-  //  reverb.connect(context.destination);
-    //javascriptNode.connect(context.destination); // does not make any sound but needed to get time tomain/ freq domain data
-   // javascriptNode.connect(compressor); // does not make any sound but needed to get time tomain/ freq domain data
     level_original.connect(compressor); // ONOFF live mic sound
     level_reverb.connect(compressor);
-
-  //  analyser.connect(javascriptNode);
-   // analyser.connect(level_original); // raw typing sound
-   // analyser.connect(reverb); // 
-    //analyser.connect(compressor); may not be needed. 
-    convolver.connect(level_reverb);
+    pitch_convolver.connect(level_reverb);
     reverb.connect(level_reverb);
     reverb2.connect(level_reverb);
-   // reverb.connect(analyser);
-   // reverb2.connect(analyser);
-   // analyser.connect(convolver);
 
     fbank.set('scale', 'mixolydian');
     fbank.set('pitch', 23);
@@ -214,21 +205,16 @@ window.onload = function() {
     chatter.connect(analyser);
     chatter.to(chatter_filterGain).connect(analyser);
     chatter.to(chatter_reverbGain).connect(reverb);
- 
-
-    
 
     var clip1 = {
         name: 'Big Empty Church',
-        url: './960-BigEmptyChurch.mp3'
-        //url: './waax/sound/ir/960-BigEmptyChurch.mp3'
-        //url: '../waax/waax/sound/ir/H3000-ReverseGate.mp3'
+        url: soundmap.reverb1
     };
     var clip2 = {
         name: 'Reverse Gate',
-        //url: '../waax/waax/sound/ir/960-BigEmptyChurch.mp3'
-        url: './H3000-ReverseGate.mp3'
+        url: soundmap.reverse_reverb
     };
+
     WX.loadClip(clip2,function(){
         reverseGate.setClip(clip2);
     });
@@ -236,116 +222,85 @@ window.onload = function() {
         cverb.setClip(clip1);
     });
 
-    var audioSelect = document.querySelector('select#audioSource');
-    var laptopMicInput;
+    var audioSelectVisual = document.querySelector('select#audioSource1');
+    var audioSelectAudio = document.querySelector('select#audioSource2');
 
     function getSourceID(){
-        laptopMicInput = audioSelect.value;
+      var MicId = this.value;
+      var sourceType = this.sourceType;
         if (navigator.getUserMedia) {
             console.log('getUserMedia supported.');
-            navigator.getUserMedia (
-                // constraints - only audio needed for this app
-                {
-                    audio: {
-                                optional: [{
-                                   sourceId: laptopMicInput
-                                }]
-                            }                    
-                },
-
+            navigator.getUserMedia ({
+              audio: {
+                          optional: [{
+                             sourceId: MicId
+                          }]
+                      }
+              },
             // Success callback
-                function(stream) {
-                    if ( sourceMic) {
-                        sourceBuiltInMic =  context.createMediaStreamSource(stream);
-                        sourceBuiltInMic.connect(analyser); // ON/OFF
-                    }
-                    else{ 
-                        sourceMic =  context.createMediaStreamSource(stream);
-                        sourceMic.connect(level_original); // ON/OFF
-                        sourceMic.connect(convolver); // ON/OFF
-                        sourceMic.connect(reverb); // ON/OFF
-                    }
-console.log('mic one connected.');
-                    // second microphone
-                  /* navigator.getUserMedia (
-                    // constraints - only audio needed for this app
-                        {
-                            audio: {
-                                optional: [{
-                                   sourceId: audioSource
-                                }]
-                            }
-                        },
-
-                        // Success callback
-                        function(stream2) {
-                            source2 =  context.createMediaStreamSource(stream2);
-                            console.log('mic two connected.' + audioSource);
-                        },
-
-                        // Error callback
-                        function(err) {
-                            console.log('The following gUM error occured: ' + err);
-                        }
-                    );
-                    */
-                },
-
+              function(stream) {
+                  if (sourceType == "visual") {
+                      sourceBuiltInMic =  context.createMediaStreamSource(stream);
+                      sourceBuiltInMic.connect(analyser); // ON/OFF
+                      console.log('builtin mic connected.');
+                  }
+                  else if (sourceType == "audio"){ // first selected (e.g. mic from audio interface)
+                      sourceMic = context.createMediaStreamSource(stream);
+                      sourceMic.connect(level_original); // ON/OFF
+                      sourceMic.connect(pitch_convolver); // ON/OFF
+                      sourceMic.connect(reverb); // ON/OFF
+                      console.log('separate mic connected.');
+                  }
+              },
             // Error callback
-                function(err) {
-                    console.log('The following gUM error occured: ' + err);
-                }
-            );
+              function(err) {
+                  console.log('The following gUM error occured: ' + err);
+              }
+          ); // end of navigator.getUserMedia
+        } else {
 
-             
-                
-            } else {
-                
-            console.log('getUserMedia not supported on your browser!');
+        console.log('getUserMedia not supported on your browser!');
 
-            }
+        }
     }
 
-    audioSelect.onchange = getSourceID;
+    audioSelectVisual.onchange = getSourceID;
+    audioSelectVisual.sourceType = "visual";
+    audioSelectAudio.onchange = getSourceID;
+    audioSelectAudio.sourceType = "audio";
 //https://simpl.info/getusermedia/sources/
     function gotSources(sourceInfos) {
-        
- 
       for (var i = 0; i !== sourceInfos.length; ++i) {
         var sourceInfo = sourceInfos[i];
-        var option = document.createElement('option');
-        option.value = sourceInfo.id;
+        var option1 = document.createElement('option');
+        var option2 = document.createElement('option');
+        option1.value = sourceInfo.id;
+        option2.value = sourceInfo.id;
         if (sourceInfo.kind === 'audio') {
-          option.text = sourceInfo.label || 'microphone ' +
-        (audioSelect.length);
-          audioSelect.appendChild(option);
+          option1.text = sourceInfo.label || 'microphone ' + (audioSelectVisual.length);
+          option2.text = sourceInfo.label || 'microphone ' + (audioSelectVisual.length);
+        audioSelectVisual.appendChild(option1);
+        audioSelectAudio.appendChild(option2);
         } else {
           console.log('Some other kind of source: ', sourceInfo);
         }
       }
     }
-        if (typeof MediaStreamTrack === 'undefined' ||
-            typeof MediaStreamTrack.getSources === 'undefined') {
-          alert('This browser does not support MediaStreamTrack.\n\nTry Chrome.');
-        } else {
-          MediaStreamTrack.getSources(gotSources);
-        }
-   
-    //  convolver.buffer = context.createBuffer(2, 2048, context.sampleRate);
+    // end of     function gotSources(sourceInfos)
+
+    if (typeof MediaStreamTrack === 'undefined' ||
+        typeof MediaStreamTrack.getSources === 'undefined') {
+      alert('This browser does not support MediaStreamTrack.\n\nTry Chrome.');
+    } else {
+      MediaStreamTrack.getSources(gotSources);
+    }
+
+    //  pitch_convolver.buffer = context.createBuffer(2, 2048, context.sampleRate);
 
     var buffers = {};
-    var soundmap = {'chatter':'chatter_amp.mp3', 'tick1' : 'tick1.wav', 'ir1' : 'ir1.wav', 'sus1' : 'sus_note.wav', 'piano1': 'piano_note1_f_sharp.wav', 'indo1' : 'indonesian_gong.wav', 'june_o' : 'june_o.wav', 'reversegate' :'H3000-ReverseGate.mp3'
-, 'june_A' : 'june_A.mp3'
-, 'june_B' : 'june_B.mp3'
-, 'june_C' : 'june_C.mp3'
-, 'june_D' : 'june_D.mp3'
-, 'june_E' : 'june_E.mp3'
-, 'june_F' : 'june_F.mp3'
-, 'june_G' : 'june_G.mp3'
-, 'june_A1' : 'june_A1.mp3'};
-    
+
     loadSounds(buffers, soundmap, function(){
-        convolver.buffer = buffers['june_C'];
+        pitch_convolver.buffer = buffers['june_C'];
         reverb.buffer = buffers['ir1'];
         reverb2.buffer = buffers['sus1'];
         chatter.buffer = buffers['chatter'];
@@ -354,40 +309,12 @@ console.log('mic one connected.');
     var amplitudeArray =  new Uint8Array(analyser.frequencyBinCount);
     var amplitudeArray2 =  new Uint8Array(analyser.frequencyBinCount);
     var amplitudeArray3 =  new Uint8Array(noiseBurstAnalyser.frequencyBinCount);
-    
-    
-    
 
     // load the sound
-    
-//   loadSound("01-Come_Together.mp3");
-//   loadSound();
-   
     if(DEBUG==true)
-                    $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td></tr></table></div>");
-    
-/*
-    javascriptNode.onaudioprocess = function(audioProcessingEvent) {
-        
-      //  convolver.buffer = audioProcessingEvent.inputBuffer;
-        var inputBuffer = audioProcessingEvent.inputBuffer;
+      $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td></tr></table></div>");
 
-        // The output buffer contains the samples that will be modified and played
-        var outputBuffer = convolver.buffer;
-        for (var channel = 0; channel < outputBuffer.numberOfChannels; channel++) {
-        // Loop through the output channels (in this case there is only one)
-            var inputData = inputBuffer.getChannelData(0);
-            var outputData = outputBuffer.getChannelData(channel);
-            for (var sample = 0; sample < inputBuffer.length; sample++) {
-                // make output equal to the same as the input
-                //outputData[sample] = inputData[sample];
-                // add noise to each output sample
-                outputData[sample] = ((Math.random() * 2) - 1) ;         
-            }
-        }
 
-    };
-    */
     function getAverageVolume(array) {
         var values = 0;
         var average;
@@ -401,43 +328,42 @@ console.log('mic one connected.');
         }
         if ( values > 0 )weightedAverageIndex /= values;
         average = values / length;
-      //  console.log("volume:" + average);
         return [average, weightedAverageIndex];
     }
-    
+
 /*****************************************************************************
 /*****************************************************************************
-        
+
         graphic part START
-        
+
 /*****************************************************************************
 /*****************************************************************************/
-    
+
     var book;
     var geoindex = 0;
     var geo = {};
     var books = [];
-    var currentBook = 0;
-    var strBook = [];
+    var currengPage = 0;
+    var strPage = [];
     var lineindex = [];
 
-    var numCharBook = [400, 670, 376];
+    var numCharPage = [400, 670, 376];
 
-    var numBook = 3;
-    for (var i=0; i< numBook; i++)
+    var numPage = 3;
+    for (var i=0; i< numPage; i++)
     {
         lineindex[i] = 0;
         geo[i] = [];
         geo[i][0] = new THREE.Geometry();
-        strBook[i] = "";
-   //     strBook[i] = "blocks of the streets becomes my poem.\ntrees of the road becomes my court\ndimmed lights reflecting in my eyes\npeople walking round in their disguise.\n\ni am feeling lonely in this zone.\ni feel the chill deep in my bones.\nthe crowd is isolating me.\nin paranoia i will be.\n\nthis gloomy streets are nursing me.\ndark alleys are my home to be.\nnocturnal fog becomes my air\nif i live or die.\nwould you care?";
+        strPage[i] = "";
+   //     strPage[i] = "blocks of the streets becomes my poem.\ntrees of the road becomes my court\ndimmed lights reflecting in my eyes\npeople walking round in their disguise.\n\ni am feeling lonely in this zone.\ni feel the chill deep in my bones.\nthe crowd is isolating me.\nin paranoia i will be.\n\nthis gloomy streets are nursing me.\ndark alleys are my home to be.\nnocturnal fog becomes my air\nif i live or die.\nwould you care?";
    // var BOOK="Writing efficient WebGL code requires a certain mindset. The usual way to draw using WebGL is to set up your uniforms, buffers and shaders for each object, followed by a call to draw the object. This way of drawing works when drawing a small number of objects. To draw a large number of objects, you should minimize the amount of WebGL state changes. To start with, draw all objects using the same shader after each other, so that you don't have to change shaders between objects. For simple objects like particles, you could bundle several objects into a single buffer and edit it using JavaScript. That way you'd only have to reupload the vertex buffer instead of changing shader uniforms for every single particle.";
 
     }
-    //geo[1] = new THREE.Geometry();
+
     var fontSize = 32;
     var lettersPerSide = 16;
-  
+
     var currIndex=[0,0,0], currentLine=[1,1,1], prevJLastLine=[0,0,0];
     var scaleX = 0.7, scaleY = 1.9;
   //  var scaleX = 5, scaleY = 12;
@@ -449,53 +375,60 @@ console.log('mic one connected.');
     var offset = 1.0;
 //    var offset = 8.0;
     var attributes = {
-        strIndex: {type: 'f', value: [] }
+        strIndex: {type: 'f', value: [] },
+        charIndex:{type:'f', value: []}
     };
-    
+
     function addLetter(code, strIndex, sizeFactor){
+        var alphabetIndex = String.fromCharCode(code).toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0) + 1;
+        console.log("code: " + String.fromCharCode(code)+ " alphabetIndex:" + alphabetIndex)
+        if(alphabetIndex < 1 || alphabetIndex > 26 )
+          alphabetIndex = 0;
+        console.log("code: " + String.fromCharCode(code)+ " alphabetIndex:" + alphabetIndex)
         var cx = code % lettersPerSide;
         var cy = Math.floor(code / lettersPerSide);
-        //var localscaleX = scaleX * (1+sizeFactor);
+        //  var localscaleX = scaleX * (1+sizeFactor);
         var localOffset = offset * (1+sizeFactor*2.0);
-        var localY = currentLine[currentBook]*scaleY - (sizeFactor/4.0);
-        geo[currentBook][geoindex].vertices.push(
-            new THREE.Vector3( currIndex[currentBook]*scaleX, localY, 0 ),
-            new THREE.Vector3( currIndex[currentBook]*scaleX+localOffset, localY, 0 ),
-            new THREE.Vector3( currIndex[currentBook]*scaleX+localOffset, localY+localOffset, 0 ),
-            new THREE.Vector3( currIndex[currentBook]*scaleX, localY+localOffset, 0 )
+        var localY = currentLine[currengPage]*scaleY - (sizeFactor/4.0);
+        geo[currengPage][geoindex].vertices.push(
+            new THREE.Vector3( currIndex[currengPage]*scaleX, localY, 0 ), // left bottom
+            new THREE.Vector3( currIndex[currengPage]*scaleX+localOffset, localY, 0 ), //right bottom
+            new THREE.Vector3( currIndex[currengPage]*scaleX+localOffset, localY+localOffset, 0 ),// right top
+            new THREE.Vector3( currIndex[currengPage]*scaleX, localY+localOffset, 0 )// left top
         );
-   //     console.log("sizeFactor:" + sizeFactor + " added(" + (j*scaleX) + "," + (j*scaleX + offset) +" strIndex : " + strIndex + ")");
-        var vcenterX = currIndex[currentBook];
-        var vcenterY = (currentLine[currentBook]*scaleY*2.0+offset) / 2.0;
+        //   console.log("sizeFactor:" + sizeFactor + " added(" + (j*scaleX) + "," + (j*scaleX + offset) +" strIndex : " + strIndex + ")");
+        var vcenterX = currIndex[currengPage];
+        var vcenterY = (currentLine[currengPage]*scaleY*2.0+offset) / 2.0;
         for (var k=0; k<4;k++){
-            attributes.strIndex.value[strIndex*4+k] = strIndex;// THREE.Vector2(6.0,12.0);
+          attributes.strIndex.value[strIndex*4+k] = strIndex;// THREE.Vector2(6.0,12.0);
+          attributes.charIndex.value[strIndex*4+k] = alphabetIndex;// THREE.Vector2(6.0,12.0);
         }
         var face = new THREE.Face3(strIndex*4+0, strIndex*4+1, strIndex*4+2);
-        geo[currentBook][geoindex].faces.push(face);
+        geo[currengPage][geoindex].faces.push(face);
         face = new THREE.Face3(strIndex*4+0, strIndex*4+2, strIndex*4+3);
-        geo[currentBook][geoindex].faces.push(face);
+        geo[currengPage][geoindex].faces.push(face);
         var ox=(cx)/lettersPerSide, oy=(cy+0.05)/lettersPerSide, off=0.9/lettersPerSide;
       //  var sz = lettersPerSide*fontSize;
-        geo[currentBook][geoindex].faceVertexUvs[0].push([
+        geo[currengPage][geoindex].faceVertexUvs[0].push([
             new THREE.Vector2( ox, oy+off ),
             new THREE.Vector2( ox+off, oy+off ),
             new THREE.Vector2( ox+off, oy )
         ]);
-        geo[currentBook][geoindex].faceVertexUvs[0].push([
+        geo[currengPage][geoindex].faceVertexUvs[0].push([
             new THREE.Vector2( ox, oy+off ),
             new THREE.Vector2( ox+off, oy ),
             new THREE.Vector2( ox, oy )
         ]);
 
-        if (code == 10 || code == 13 || currIndex[currentBook]  == letterPerLine) {
-            currentLine[currentBook]--;
-            prevJLastLine[currentBook] = currIndex[currentBook];
-            currIndex[currentBook]=0;
+        if (code == 10 || code == 13 || currIndex[currengPage]  == letterPerLine) {
+            currentLine[currengPage]--;
+            prevJLastLine[currengPage] = currIndex[currengPage];
+            currIndex[currengPage]=0;
         } else {
-            currIndex[currentBook]++;
-            if (rightMostPosition<currIndex[currentBook]){
-                rightMostXCoord = currIndex[currentBook]*scaleX+offset;
-                rightMostPosition = currIndex[currentBook];
+            currIndex[currengPage]++;
+            if (rightMostPosition<currIndex[currengPage]){
+                rightMostXCoord = currIndex[currengPage]*scaleX+offset;
+                rightMostPosition = currIndex[currengPage];
             }
         }
     } // the end of addLetter
@@ -530,7 +463,7 @@ console.log('mic one connected.');
     camera.position.z = radius;
     scene.add(camera);
 
-    var str = strBook[currentBook];
+    var str = strPage[currengPage];
     var centerX = (letterPerLine) * scaleX / 2.0;
     var centerY = (-linePerScreen * scaleY )/2.0;
 
@@ -546,16 +479,18 @@ console.log('mic one connected.');
         attributes.attCenter.value[k].x -=centerX;
         attributes.attCenter.value[k].y -=centerY;
     }
-    */  
+    */
     var top = new THREE.Object3D();
 
     var width = window.innerWidth,
         height = window.innerHeight;
-
+  
     var uniforms = {
         time: {type:"f", value:0.0},
         interval : {type:"f", value:0.0},
+        volume : {type:"f", value:0.0},
         timeDomain : { type:"fv1", value:new Float32Array(512)},
+        coloredStr : { type:"iv1", value:coloredStr},
     //        timeDomain2 : { type:"fv1", value:new Float32Array(512)},
     //    center : { type: "v2", value: new THREE.Vector2(centerX,centerY) },
         map : { type: "t", value: tex },
@@ -565,7 +500,7 @@ console.log('mic one connected.');
     };
 
     uniforms.rightMostXCoord.value = rightMostXCoord;
-
+// initial shader
     var shaderMaterial = new THREE.ShaderMaterial({
         uniforms : uniforms,
         attributes : attributes,
@@ -579,8 +514,8 @@ console.log('mic one connected.');
     var w = 80 * 1.1;
     var n = 18;
     var r = w  * 1/Math.PI * 2;
-    for (var i=0; i<numBook; i++) {
-     
+    for (var i=0; i<numPage; i++) {
+
 
 
         books[i] = new THREE.Mesh(
@@ -641,9 +576,9 @@ console.log('mic one connected.');
 
         var state = 0;
 
-    var currentBook1StartTime = 0;
+    var currengPage1StartTime = 0;
     var animate = function(t) {
-       
+
         var alpha = 0.8;
         // get the average, bincount is fftsize / 2
         analyser.getByteFrequencyData(amplitudeArray);
@@ -653,19 +588,20 @@ console.log('mic one connected.');
             noiseBurstAnalyser.getByteTimeDomainData(amplitudeArray3);
             var noiseVolume = getAverageVolume(amplitudeArray3);
             uniforms.noise.value = noiseVolume[0] / 128.0 * 0.005;
-            
+
 
         }
 
         var resultArr = getAverageVolume(amplitudeArray);
         volume = alpha * (resultArr[0]/128.0) + (1-alpha) * volume;
+        uniforms.volume.value = volume;
         freqIndex = resultArr[1];
-        if(currentBook == 1){
+        if(currengPage == 1){
             camera.rotation.y -= 0.00015;
             uniforms.time.value += 0.05;
             uniforms.interval.value = Math.max(Math.min(interval,1.0),0.0);
         }
-        else if ( currentBook == 2){
+        else if ( currengPage == 2){
             camera.rotation.y -= 0.00005;
             uniforms.time.value -= 0.12;
 
@@ -674,14 +610,14 @@ console.log('mic one connected.');
         uniforms.rightMostXCoord.value = rightMostXCoord;
 
         for (var l=0;l<512;l++){
-            uniforms.timeDomain.value[l] = uniforms.timeDomain.value[l] * alpha + (1-alpha ) * (amplitudeArray2[l]/256.0-0.5); 
+            uniforms.timeDomain.value[l] = uniforms.timeDomain.value[l] * alpha + (1-alpha ) * (amplitudeArray2[l]/256.0-0.5);
         }
         renderer.render(scene, camera);
         requestAnimationFrame(animate, renderer.domElement);
     };// the end of animate()
-        
-        
-        
+
+
+
     animate(Date.now());
     //  document.body.appendChild(c);
     var down = false;
@@ -694,13 +630,13 @@ console.log('mic one connected.');
     var scaleModel = fbank.getScaleModel();
     //console.log(scaleModel);
 
-   
 
-    var oscillator_list = {}; 
-        
 
-        
-    
+    var oscillator_list = {};
+
+
+
+
     var interval = 1, alpha = 0.9, lastKeyTime = 0;
     var index = 30;
     var previousKeyPressTime = context.currentTime;
@@ -708,7 +644,7 @@ console.log('mic one connected.');
     function equalPowerCrossfade (percent, gain1, gain2, amp1, amp2){
         var level1 = Math.cos(percent*0.5*Math.PI);
         var level2 = Math.cos((1.0-percent) * 0.5 * Math.PI);
-        gain1.gain.value = level1 * amp1; 
+        gain1.gain.value = level1 * amp1;
         gain2.gain.value = level2 * amp2 ;
     }
 
@@ -724,18 +660,18 @@ console.log('mic one connected.');
             ev.preventDefault();
             geoindex++;
             geoindex%=2;
-            geo[currentBook][geoindex] = geo[currentBook][geoindex].clone();
-            books[currentBook].geometry = geo[currentBook][geoindex];
-            if ( currIndex[currentBook] == 0 )
+            geo[currengPage][geoindex] = geo[currengPage][geoindex].clone();
+            books[currengPage].geometry = geo[currengPage][geoindex];
+            if ( currIndex[currengPage] == 0 )
             {
-                currentLine[currentBook] ++;
-                currIndex[currentBook] = prevJLastLine[currentBook];
-                strBook[currentBook] = strBook[currentBook].substring(0,strBook[currentBook].length-2);
+                currentLine[currengPage] ++;
+                currIndex[currengPage] = prevJLastLine[currengPage];
+                strPage[currengPage] = strPage[currengPage].substring(0,strPage[currengPage].length-2);
             }
             else{
-               currIndex[currentBook]--;
+               currIndex[currengPage]--;
             }
-            strBook[currentBook] = strBook[currentBook].substring(0,strBook[currentBook].length-1);
+            strPage[currengPage] = strPage[currengPage].substring(0,strPage[currengPage].length-1);
         }
         else if (keycode == 18){
             filterOn = !filterOn;
@@ -751,15 +687,16 @@ console.log('mic one connected.');
             }
         }
         else if (keycode == 93){
-            currentBook++;
-            currentBook%=3;
-            geoindex = 0; 
-            if (currentBook == 2){
+            currengPage++;
+            currengPage%=3;
+            geoindex = 0;
+            if (currengPage == 2){
                 chatter.start(0);
                 reverseGate.params.mix.set(0.0,context.currentTime,1);
                 reverseGate.params.mix.set(1.0,context.currentTime + 90,1);
             }
-            else if (currentBook == 1){
+            else if (currengPage == 1){ // the 2nd page
+              // the 2nd page shader
                 var shaderMaterial = new THREE.ShaderMaterial({
                     uniforms : uniforms,
                     attributes : attributes,
@@ -770,14 +707,14 @@ console.log('mic one connected.');
                 shaderMaterial.depthTest = false;
                 interval = 1.0;
                 uniforms.time.value = 0;
-                //for (var i=0; i< numBook-1; i++)
-                books[1].material = shaderMaterial;            
+                //for (var i=0; i< numPage-1; i++)
+                books[1].material = shaderMaterial;
             }
-           
+
         }
-        else if (currentBook ==2 && lineindex[currentBook] >4 && (keycode == 69 || keycode == 79)){ // either e or o
-        // clear the whole writing if commnad enter pressed. 
-            
+        else if (currengPage ==2 && lineindex[currengPage] >4 && (keycode == 69 || keycode == 79)){ // either e or o
+        // clear the whole writing if commnad enter pressed.
+
             var dur = (keyInterval+0.1) / (keyIntervalCnt+0.1) / 4;
             noiseBurstadsr.play(0,dur, dur, dur, dur,1.0,0.1);
 
@@ -786,9 +723,9 @@ console.log('mic one connected.');
                 noiseBurstOn = false;
                 uniforms.noise.value = 0.0;
             }, dur * 4000)
-        }   
+        }
         else if(ev.shiftKey == true && keycode == 13){
-            if ( currentBook == 2){
+            if ( currengPage == 2){
                 noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime );
                 noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime +8);
                 uniforms.time.value -= 0.1;
@@ -806,7 +743,7 @@ console.log('mic one connected.');
             keydown_debug_color_index++;
             keydown_debug_color_index%=randomcolor.length;
             $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
-        } 
+        }
     };
 
     window.onkeyup = function(ev){
@@ -819,7 +756,7 @@ console.log('mic one connected.');
             keyup_debug_color_index++;
             keyup_debug_color_index%=randomcolor.length;
             $("#keyup_debug").css("background-color", randomcolor[keyup_debug_color_index]);
-        }  
+        }
     };
     var currentOuput = 0.0; // noise burst output
 
@@ -827,76 +764,76 @@ console.log('mic one connected.');
 
         var keycode = ev.which;
 
-      
 
-        if ( ev.shiftKey == true && ev.which == 13)
+
+        if ( ev.shiftKey == true && ev.which == 13) // shift_enter
         {
-            strBook[currentBook] = "";
+            strPage[currengPage] = "";
         }
 
 
-        // update the visual first. 
+        // update the visual first.
 
-        var code = strBook[currentBook].charCodeAt(strBook[currentBook].length-1);
-        if (code == 8)
+        var code = strPage[currengPage].charCodeAt(strPage[currengPage].length-1);
+        if (code == 8) // //backspace
             return;
-        if (keycode == 49){
-            convolver.buffer = buffers['june_A'];
+        if (keycode == 49){ // 1 pressed
+            pitch_convolver.buffer = buffers['june_A'];
             return;
-        } else if (keycode == 50){
-            convolver.buffer = buffers['june_B'];
-            return;
-        }
-        else if (keycode == 51){
-            convolver.buffer = buffers['june_C'];
+        } else if (keycode == 50){ // 2 pressed
+            pitch_convolver.buffer = buffers['june_B'];
             return;
         }
-        else if (keycode == 52){
-            convolver.buffer = buffers['june_D'];
+        else if (keycode == 51){ // 3 pressed
+            pitch_convolver.buffer = buffers['june_C'];
             return;
         }
-        else if (keycode == 53){
-            convolver.buffer = buffers['june_E'];
+        else if (keycode == 52){ // 4 pressed
+            pitch_convolver.buffer = buffers['june_D'];
             return;
         }
-        else if (keycode == 54){
-            convolver.buffer = buffers['june_F'];
+        else if (keycode == 53){ // 5 pressed
+            pitch_convolver.buffer = buffers['june_E'];
             return;
         }
-        else if (keycode == 55){
-            convolver.buffer = buffers['june_G'];
+        else if (keycode == 54){ // 6 pressed
+            pitch_convolver.buffer = buffers['june_F'];
             return;
         }
-        else if (keycode == 56){
-            convolver.buffer = buffers['june_A1'];
+        else if (keycode == 55){ // 7 pressed
+            pitch_convolver.buffer = buffers['june_G'];
             return;
         }
-        
+        else if (keycode == 56){ // 8 pressed
+            pitch_convolver.buffer = buffers['june_A1'];
+            return;
+        }
+
         var prevgeoindex = geoindex;
         geoindex++;
         geoindex%=2;
-        geo[currentBook][geoindex] = geo[currentBook][prevgeoindex].clone();
-        if ( currentBook == 2 && currentLine[2] <-7 && keycode >= 97 && keycode <=122)
+        geo[currengPage][geoindex] = geo[currengPage][prevgeoindex].clone();
+        if ( currengPage == 2 && currentLine[2] <-7 && keycode >= 97 && keycode <=122)
             keycode -= getRandomInt(0,1) * 32;
-        strBook[currentBook] +=String.fromCharCode(keycode);
-        if (lineindex[currentBook] <=8 && currentBook == 0)
+        strPage[currengPage] +=String.fromCharCode(keycode);
+        if (lineindex[currengPage] <=8 && currengPage == 0)
             volume = 0;
-        addLetter(strBook[currentBook].charCodeAt(strBook[currentBook].length-1),strBook[currentBook].length-1,volume);
-        if (currIndex[currentBook] == letterPerLine){
-            strBook[currentBook] += "\n";
-            addLetter(code,strBook[currentBook].length-1,0);
+        addLetter(strPage[currengPage].charCodeAt(strPage[currengPage].length-1),strPage[currengPage].length-1,volume);
+        if (currIndex[currengPage] == letterPerLine){
+            strPage[currengPage] += "\n";
+            addLetter(code,strPage[currengPage].length-1,0);
         }
-        
+
 
         var currentTime = context.currentTime;
 
         keyInterval += currentTime - previousKeyPressTime;
-        keyIntervalCnt ++; 
+        keyIntervalCnt ++;
         previousKeyPressTime = currentTime;
-        // play dron if interval is over threhold? 
+        // play dron if interval is over threhold?
         if ( keycode == 13 || keycode == 32 ){
             var avgInterval = keyInterval/keyIntervalCnt;
-                // play drone sound 
+                // play drone sound
             console.log("space or enter : " + avgInterval + "(" + keyInterval + "," + keyIntervalCnt + ")");
 
             if ( avgInterval > 0.4){
@@ -920,9 +857,9 @@ console.log('mic one connected.');
             if (state == 1){
 
                // reverseGate.set('mix', 1.0,context.currenTime + 10);
-               
+
                 delay.params.mix.set(0.0,context.currentTime,1);
-                delay.params.mix.set(0.0,context.currentTime+60,1);    
+                delay.params.mix.set(0.0,context.currentTime+60,1);
                 delay.params.mix.set(1.0,context.currentTime+90,1);
                 delay.params.mix.set(0.0,context.currentTime+120,1);
 
@@ -942,14 +879,14 @@ console.log('mic one connected.');
         }
 
 
-        
-        //gain.connect(convolver);
+
+        //gain.connect(pitch_convolver);
       //  gain.connect(level_reverb);
-       // convolver.connect(compressor);
+       // pitch_convolver.connect(compressor);
     //    gain.connect(context.destination);
 
         var randomPitch = 24 + getRandomInt(-3,12);
-    
+
         var osc = new Oscillator(randomPitch, 'triangle');
                 var adsr = new ADSR();
                 osc.node.connect(adsr.node);
@@ -958,7 +895,7 @@ console.log('mic one connected.');
                // oscillator_list[24] = osc;
     //              }
 
-  
+
             osc.play(0);
             osc.stop(context.currentTime + 3.2);
             adsr.play(0,0.1,0.1,2,1);
@@ -980,7 +917,7 @@ console.log('mic one connected.');
             keypress_debug_color_index++;
             keypress_debug_color_index%=randomcolor.length;
             $("#keypress_debug").css("background-color", randomcolor[keypress_debug_color_index]);
-        }  
+        }
 
 
 
@@ -995,11 +932,10 @@ console.log('mic one connected.');
             source.start(0);
         }
 
-
-
-        if (currentBook == 2){
-            var length = strBook[currentBook].length;
-            var percent = WX.clamp(length/numCharBook[currentBook],0,1.0);
+        if (currengPage == 2){ // the third page
+            var length = strPage[currengPage].length;
+            var percent = WX.clamp(length/numCharPage[currengPage],0,1.0);
+            // slowly increase
             equalPowerCrossfade(percent, chatter_filterGain, chatter_reverbGain, 0.5, 0.1);
             currentOuput = noiseBurst.get('output');
             noiseBurst.params.output.set(currentOuput, context.currentTime, 1);
@@ -1007,12 +943,12 @@ console.log('mic one connected.');
             noiseBurst.params.output.set(currentOuput, context.currentTime + 0.1, 1);
         }
 
-        if (code == 10 || code == 13){
-            lineindex[currentBook]++;
+        if (code == 10 || code == 13){ // enter or linebreak (carrige return)
+            lineindex[currengPage]++;
 
             fbank.set('scale', scaleModel[getRandomInt(0,3)].value, WX.now + 4, 2);
            // fbank.set('pitch', fbank_pitchset[getRandomInt(0,3)]);
-            if (lineindex[currentBook] == 2 && currentBook == 0){
+            if (lineindex[currengPage] == 2 && currengPage == 0){ // the third line 2nd page
                 level_reverb.gain.linearRampToValueAtTime(0.0, context.currentTime )
                 level_reverb.gain.linearRampToValueAtTime(1.0, context.currentTime + 30)
 
@@ -1030,7 +966,7 @@ console.log('mic one connected.');
                 osc.node.detune.linearRampToValueAtTime(900, context.currentTime + 120);
                 osc.node.detune.linearRampToValueAtTime(200, context.currentTime + 240);
             }
-            else if (lineindex[currentBook] == 4 && currentBook == 0){
+            else if (lineindex[currengPage] == 4 && currengPage == 0){ // thr fifth line page 2
                 var shaderMaterial = new THREE.ShaderMaterial({
                     uniforms : uniforms,
                     attributes : attributes,
@@ -1039,18 +975,17 @@ console.log('mic one connected.');
                 });
                 shaderMaterial.transparent = true;
                 shaderMaterial.depthTest = false;
-                for (var i=0; i< numBook; i++)
+                // turn on reverb gain slowly.
+                for (var i=0; i< numPage; i++)
                     books[i].material = shaderMaterial;
-                // turn on reverb gain slowly. 
-                
+
            }
 
 
         }
-        //var str = BOOK;
-     //   j = 0; ln = 0;
-     books[currentBook].geometry = geo[currentBook][geoindex];
-        
+
+     books[currengPage].geometry = geo[currengPage][geoindex];
+
     }
 
     var wheelHandler = function(ev) {
@@ -1070,15 +1005,15 @@ console.log('mic one connected.');
         if (down) {
             var dx = ev.clientX - sx;
             var dy = ev.clientY - sy;
-      //      books[currentBook].rotation.x += dy/50.0;
-    //        books[currentBook].rotation.y += dx/50.0;
+      //      books[currengPage].rotation.x += dy/50.0;
+    //        books[currengPage].rotation.y += dx/50.0;
             camera.rotation.y += dx/500 * (camera.fov/45);;
             //camera.rotation.y += dx/500 * (camera.fov/45);;
             camera.rotation.x += dy/500 * (camera.fov/45);
             sx += dx;
             sy += dy;
             //hellow
-            if (drone  && currentBook >= 1)
+            if (drone  && currengPage >= 1)
                 drone.detune(dy);
 /*
             if (filterOn){
@@ -1094,7 +1029,7 @@ console.log('mic one connected.');
 */
         }
     };
-  
+
     window.onmousedown = function (ev){
        if (ev.target == renderer.domElement) {
             down = true;
@@ -1102,9 +1037,9 @@ console.log('mic one connected.');
             sy = ev.clientY;
        }
 //function ScissorVoice(noteNum, numOsc, oscType, detune){
-        if ( currentBook >= 1){
+        if ( currengPage >= 1){
             if (drone){
-                drone.output.noteOff(0,1,drone.maxGain*2.0);    
+                drone.output.noteOff(0,1,drone.maxGain*2.0);
                 drone.stop(context.currentTime + 1);
             }
            drone = new ScissorVoice(pitchListforDrone[pitchIndex],getRandomInt(3,10),"triangle", 12);
@@ -1115,17 +1050,17 @@ console.log('mic one connected.');
            pitchIndex %= pitchListforDrone.length;
         }
     };
-    window.onmouseup = function(){ 
-        down = false; 
-        if ( drone && currentBook >= 1)
+    window.onmouseup = function(){
+        down = false;
+        if ( drone && currengPage >= 1)
         { // ADSR.prototype.noteOff= function(delay, R, sustainlevel){
-            drone.output.noteOff(0,1,drone.maxGain);    
+            drone.output.noteOff(0,1,drone.maxGain);
             drone.stop(context.currentTime + 1);
             delete drone;
-            
+
 
         }
     };
-    
-    
+
+
 };

@@ -2,6 +2,7 @@
     <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
         <link rel="stylesheet" href="./codemirror/lib/codemirror.css">
         <link rel=stylesheet href="./codemirror/doc/docs.css">
 
@@ -15,7 +16,12 @@
 
         <script src="./js/jquery-1.11.1.min.js" type="text/javascript"></script>
         <script src="./js/jquery-ui.min.js" type="text/javascript"></script>
+        <!-- Latest compiled and minified CSS
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
 
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+-->
         <script src="./js/jquery.bpopup.min.js" type="text/javascript"></script>
         <script src="./js/slidereveal.js" type="text/javascript"></script>
         <script src="./js/ZeroClipboard.min.js" type="text/javascript"></script>
@@ -23,7 +29,7 @@
         <script src="./js/livewriting.js" type="text/javascript"></script>
         <script src="./js/localsetting.js" type="text/javascript"></script>
         <script src="./js/placeholder.js" type="text/javascript"></script>
-        <script src="./js/codemirror.main.js" type="text/javascript"></script>
+        <script src="./js/duet.main.js" type="text/javascript"></script>
 
          <title>Live Writing</title>
         </head>
@@ -41,39 +47,37 @@
     </div>
 
     <div id="post-message" class="hidden dialog-message" align=center>
-      <h4>Posting...</h4>
-      <p><img src="images/progressbar.gif" ></p>
+            <h4>Posting...</h4>
+            <p><img src="images/progressbar.gif" ></p>
     </div>
     <div id="download-message" class="hidden dialog-message" align=center>
-      <h4>Downloading...</h4>
-      <p><img src="images/progressbar.gif" ></p>
+            <h4>Downloading...</h4>
+            <p><img src="images/progressbar.gif" ></p>
     </div>
     <div id="post-complete-message" class="hidden dialog-message" align=center>
-      <h4>Posting complete.</h4>
-      <p>You can access to your writing with the following address. </p>
-      <div id="post-link" class="linkbox">www.dummylink.com/doesnotexist</div>
-      <div class = "buttons">
-          <button id = "copytoclipboard">Copy to clipboard</button>
-          <button id = "play" >Play</button>
-          <button id = "close" >Close</button>
-      </div>
+            <h4>Posting complete.</h4>
+            <p>You can access to your writing with the following address. </p>
+            <div id="post-link" class="linkbox">www.dummylink.com/doesnotexist</div>
+            <div class = "buttons">
+                <button id = "copytoclipboard">Copy to clipboard</button>
+                <button id = "play" >Play</button>
+                <button id = "close" >Close</button>
+            </div>
     </div>
     <div id="slider" class="slider">
         <div id="side-tabs">
             <a id="trigger" class="support">&lt;</a>
         </div>
-      <h2>Live Writing</h2>
-      <div><button id = "postdata" class = "hidden">Post</button> </div>
-      <div><button id = "reset" class = "hidden">Start Over</button> </div>
-      <div><button id = "about2" class = "about">About</button> </div>
-      <div>
-        <button id="slider_toggle" class = "hidden">Toggle Slider</button>
-      </div>
-      <div class = "bottom">
-          <p>v.0.1.0</p>
-          <p> last updated 9/17/2015</p>
-          <p>© 2014-2015 <a href="http://sangwonlee.com">Sang Won Lee</a>. </p>
-      </div>
+    <div>
+    <h2>Live Writing</h2>
+    <button id = "postdata" class = "hidden">Post</button> </div>
+    <div><button id = "reset" class = "hidden">Start Over</button> </div>
+    <div><button id = "about2" class = "about">About</button> </div>
+            <div class = "bottom">
+                <p>v.0.1.0</p>
+                <p> last updated 9/17/2015</p>
+                <p>© 2014-2015 <a href="http://sangwonlee.com">Sang Won Lee</a>. </p>
+            </div>
     </div>
     <div class="centre">
       <textarea name="livetext" id ="livetext" placeholder="Live-write here..."></textarea>

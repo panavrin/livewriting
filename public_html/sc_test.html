@@ -1,0 +1,14 @@
+<script src="../node_modules/socket.io/socket.io.js"></script>
+<script src="/static/js/scapi.js"></script>
+<script>
+  var sc = new SCApi("localhost", 4040);
+  sc.call("server.boot", ["default"], function() {
+    // server is booted now
+    sc.call("group.new", [], function(groupID) {
+      // spawn synths into this group
+      sc.call("synth.new", ["scarysound", 100.0, 666.0, 7], function(synthID) {
+        // enable things on the page to send control changes to the scarysound
+      });
+    });
+  });
+</script>

@@ -23,7 +23,7 @@ ScissorVoice.prototype.stop = function(time){
     for (var i=0; i<it.oscs.length; i++){
         it.oscs[i].disconnect();
     }
-    
+
   }, Math.floor((time-context.currentTime)*1000));
 }
 
@@ -37,7 +37,7 @@ ScissorVoice.prototype.detune = function(detune){
 
 ScissorVoice.prototype.connect = function(target){
   this.output.node.connect(target);
-}   
+}
 
 var context = WX._ctx;
 function getRandomInt (min, max) {
@@ -45,7 +45,7 @@ function getRandomInt (min, max) {
 }
 
 function noteNum2Freq(num){
-    return Math.pow(2,(num-57)/12) * 440 
+    return Math.pow(2,(num-57)/12) * 440
 }
 
 function ADSR(){
@@ -56,7 +56,7 @@ function ADSR(){
 ADSR.prototype.noteOn= function(delay, A,D, peakLevel, sustainlevel){
     peakLevel = peakLevel || 0.3;
     sustainlevel = sustainlevel || 0.1;
-    
+
     this.node.gain.linearRampToValueAtTime(0.0,delay + context.currentTime);
     this.node.gain.linearRampToValueAtTime(peakLevel,delay + context.currentTime + A); // Attack
     this.node.gain.linearRampToValueAtTime(sustainlevel,delay + context.currentTime + A + D);// Decay
@@ -65,14 +65,14 @@ ADSR.prototype.noteOn= function(delay, A,D, peakLevel, sustainlevel){
 ADSR.prototype.noteOff= function(delay, R, sustainlevel){
     sustainlevel = sustainlevel || 0.1;
 
-    this.node.gain.linearRampToValueAtTime(sustainlevel,delay + context.currentTime );// Release   
-    this.node.gain.linearRampToValueAtTime(0.0,delay + context.currentTime + R);// Release   
-    
+    this.node.gain.linearRampToValueAtTime(sustainlevel,delay + context.currentTime );// Release
+    this.node.gain.linearRampToValueAtTime(0.0,delay + context.currentTime + R);// Release
+
 }
 
 ADSR.prototype.play= function(time, A,D,S,R, peakLevel, sustainlevel){
-    this.noteOn(time,A,D, peakLevel, sustainlevel); 
-    this.noteOff(time+A+D+S,R, sustainlevel); 
+    this.noteOn(time,A,D, peakLevel, sustainlevel);
+    this.noteOff(time+A+D+S,R, sustainlevel);
 }
 
 
@@ -83,7 +83,7 @@ function Envelope(){
 
 Envelope.prototype.noteOn= function(time, A,D,S,R){
   //  this.node.gain.linearRampToValueAtTime(0.0,context.currentTime);
-   
+
 }
 
 function Oscillator(noteNum, type){
@@ -101,7 +101,7 @@ function Oscillator(noteNum, type){
 Oscillator.prototype.play = function(time){
 
     this.node.start(time);
-    
+
 }
 
 
@@ -111,18 +111,18 @@ Oscillator.prototype.stop = function( time){
 
 
 window.onload = function() {
-    var DEBUG = false;    
+    var DEBUG = false;
     var  randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
        keyup_debug_color_index=0,
        keydown_debug_color_index=0,
        keypress_debug_color_index=0;
-    
+
     if (!hasGetUserMedia()) {
         alert('getUserMedia() is not supported in your browser. Please visit http://caniuse.com/#feat=stream to see web browsers available for this demo.');
     }
 //
     $("#hide").click(function(){
-        // remove select 
+        // remove select
         $("#micselect").hide();
     });
     // set up forked web audio context, for multiple browsers
@@ -130,19 +130,19 @@ window.onload = function() {
 
     var volume = 0;
     var freqIndex;
-    
+
     navigator.getUserMedia = (navigator.getUserMedia ||
                               navigator.webkitGetUserMedia ||
                               navigator.mozGetUserMedia ||
                               navigator.msGetUserMedia);
     var level_original = context.createGain();
-    var level_reverb = context.createGain(); 
+    var level_reverb = context.createGain();
     var convolver = context.createConvolver();
     var reverb = context.createConvolver();
     var reverb2 = context.createConvolver();
     var chatter = context.createBufferSource();
-    var chatter_filterGain = context.createGain(); 
-    var chatter_reverbGain = context.createGain(); 
+    var chatter_filterGain = context.createGain();
+    var chatter_reverbGain = context.createGain();
     var sourceMic;
     var sourceBuiltInMic;
 
@@ -173,18 +173,18 @@ window.onload = function() {
 
     analyser.smoothingTimeConstant = 0.3;
     analyser.fftSize = 512;
-    
+
     masterGain.gain.value =1.0;
     level_reverb.gain.value = 0.0;
     level_original.gain.value = 1.0;
-    
+
     chatter_filterGain.gain.value = 1.0;
     chatter_reverbGain.gain.value = 0.0;
 
     compressor.threshold.value = 10;
     compressor.ratio.value = 20;
     compressor.reduction.value = -20;
-    
+
     filter.type = (typeof filter.type === 'string') ? 'bandpass' : 0; // LOWPASS
     filter.frequency.value = 500;
 
@@ -196,17 +196,9 @@ window.onload = function() {
    // javascriptNode.connect(compressor); // does not make any sound but needed to get time tomain/ freq domain data
     level_original.connect(compressor); // ONOFF live mic sound
     level_reverb.connect(compressor);
-
-  //  analyser.connect(javascriptNode);
-   // analyser.connect(level_original); // raw typing sound
-   // analyser.connect(reverb); // 
-    //analyser.connect(compressor); may not be needed. 
     convolver.connect(level_reverb);
     reverb.connect(level_reverb);
     reverb2.connect(level_reverb);
-   // reverb.connect(analyser);
-   // reverb2.connect(analyser);
-   // analyser.connect(convolver);
 
     fbank.set('scale', 'mixolydian');
     fbank.set('pitch', 23);
@@ -214,9 +206,9 @@ window.onload = function() {
     chatter.connect(analyser);
     chatter.to(chatter_filterGain).connect(analyser);
     chatter.to(chatter_reverbGain).connect(reverb);
- 
 
-    
+
+
 
     var clip1 = {
         name: 'Big Empty Church',
@@ -249,7 +241,7 @@ window.onload = function() {
                                 optional: [{
                                    sourceId: laptopMicInput
                                 }]
-                            }                    
+                            }
                 },
 
             // Success callback
@@ -258,7 +250,7 @@ window.onload = function() {
                         sourceBuiltInMic =  context.createMediaStreamSource(stream);
                         sourceBuiltInMic.connect(analyser); // ON/OFF
                     }
-                    else{ 
+                    else{
                         sourceMic =  context.createMediaStreamSource(stream);
                         sourceMic.connect(level_original); // ON/OFF
                         sourceMic.connect(convolver); // ON/OFF
@@ -296,10 +288,10 @@ console.log('mic one connected.');
                 }
             );
 
-             
-                
+
+
             } else {
-                
+
             console.log('getUserMedia not supported on your browser!');
 
             }
@@ -308,8 +300,8 @@ console.log('mic one connected.');
     audioSelect.onchange = getSourceID;
 //https://simpl.info/getusermedia/sources/
     function gotSources(sourceInfos) {
-        
- 
+
+
       for (var i = 0; i !== sourceInfos.length; ++i) {
         var sourceInfo = sourceInfos[i];
         var option = document.createElement('option');
@@ -329,12 +321,12 @@ console.log('mic one connected.');
         } else {
           MediaStreamTrack.getSources(gotSources);
         }
-   
+
     //  convolver.buffer = context.createBuffer(2, 2048, context.sampleRate);
 
     var buffers = {};
     var soundmap = {'chatter':'chatter_amp.mp3', 'tick1' : 'tick1.wav', 'ir1' : 'ir1.wav', 'sus1' : 'sus_note.wav', 'piano1': 'piano_note1_f_sharp.wav', 'indo1' : 'indonesian_gong.wav', 'june_o' : 'june_o.wav', 'reversegate' :'H3000-ReverseGate.mp3'};
-    
+
     loadSounds(buffers, soundmap, function(){
         convolver.buffer = buffers['june_o'];
         reverb.buffer = buffers['ir1'];
@@ -347,24 +339,24 @@ console.log('mic one connected.');
     var amplitudeArray3 =  new Uint8Array(noiseBurstAnalyser.frequencyBinCount);
             console.log('one ');
 
-    
-    
+
+
         console.log('two');
 
-    
-    
+
+
 
     // load the sound
-    
+
 //   loadSound("01-Come_Together.mp3");
 //   loadSound();
-   
+
     if(DEBUG==true)
                     $( "body" ).append("<div><table><tr><td>name</td><td>keyDown</td><td>keyPress</td><td>keyUp</td><td>mouseUp</td></tr><tr><td>keycode</td><td><div id=\"keydown_debug\"></div></td><td><div id=\"keypress_debug\"></div></td><td><div id=\"keyup_debug\"></div></td><td><div id=\"mouseup_debug\"></div></td></tr><tr><td>start</td><td><div id=\"start_down_debug\"></div></td><td><div id=\"start_press_debug\"></div></td><td><div id=\"start_up_debug\"></div></td><td><div id=\"start_mouseup_debug\"></div></td></tr><tr><td>end</td><td><div id=\"end_down_debug\"></div></td><td><div id=\"end_press_debug\"></div></td><td><div id=\"end_up_debug\"></div></td><td><div id=\"end_mouseup_debug\"></div></td></tr></table></div>");
-    
+
 /*
     javascriptNode.onaudioprocess = function(audioProcessingEvent) {
-        
+
       //  convolver.buffer = audioProcessingEvent.inputBuffer;
         var inputBuffer = audioProcessingEvent.inputBuffer;
 
@@ -378,7 +370,7 @@ console.log('mic one connected.');
                 // make output equal to the same as the input
                 //outputData[sample] = inputData[sample];
                 // add noise to each output sample
-                outputData[sample] = ((Math.random() * 2) - 1) ;         
+                outputData[sample] = ((Math.random() * 2) - 1) ;
             }
         }
 
@@ -400,15 +392,15 @@ console.log('mic one connected.');
       //  console.log("volume:" + average);
         return [average, weightedAverageIndex];
     }
-    
+
 /*****************************************************************************
 /*****************************************************************************
-        
+
         graphic part START
-        
+
 /*****************************************************************************
 /*****************************************************************************/
-    
+
     var book;
     var geoindex = 0;
     var geo = {};
@@ -433,7 +425,7 @@ console.log('mic one connected.');
     //geo[1] = new THREE.Geometry();
     var fontSize = 32;
     var lettersPerSide = 16;
-  
+
     var currIndex=[0,0,0], currentLine=[0,0,0], prevJLastLine=[0,0,0];
     var scaleX = 0.7, scaleY = 1.9;
   //  var scaleX = 5, scaleY = 12;
@@ -447,7 +439,7 @@ console.log('mic one connected.');
     var attributes = {
         strIndex: {type: 'f', value: [] }
     };
-    
+
     function addLetter(code, strIndex, sizeFactor){
         var cx = code % lettersPerSide;
         var cy = Math.floor(code / lettersPerSide);
@@ -542,7 +534,7 @@ console.log('mic one connected.');
         attributes.attCenter.value[k].x -=centerX;
         attributes.attCenter.value[k].y -=centerY;
     }
-    */  
+    */
     var top = new THREE.Object3D();
 
     var width = window.innerWidth,
@@ -576,7 +568,7 @@ console.log('mic one connected.');
     var n = 18;
     var r = w  * 1/Math.PI * 2;
     for (var i=0; i<numBook; i++) {
-     
+
 
 
         books[i] = new THREE.Mesh(
@@ -639,7 +631,7 @@ console.log('mic one connected.');
 
     var currentBook1StartTime = 0;
     var animate = function(t) {
-       
+
         var alpha = 0.8;
         // get the average, bincount is fftsize / 2
         analyser.getByteFrequencyData(amplitudeArray);
@@ -649,7 +641,7 @@ console.log('mic one connected.');
             noiseBurstAnalyser.getByteTimeDomainData(amplitudeArray3);
             var noiseVolume = getAverageVolume(amplitudeArray3);
             uniforms.noise.value = noiseVolume[0] / 128.0 * 0.005;
-            
+
 
         }
 
@@ -668,14 +660,14 @@ console.log('mic one connected.');
         uniforms.rightMostXCoord.value = rightMostXCoord;
 
         for (var l=0;l<512;l++){
-            uniforms.timeDomain.value[l] = uniforms.timeDomain.value[l] * alpha + (1-alpha ) * (amplitudeArray2[l]/256.0-0.5); 
+            uniforms.timeDomain.value[l] = uniforms.timeDomain.value[l] * alpha + (1-alpha ) * (amplitudeArray2[l]/256.0-0.5);
         }
         renderer.render(scene, camera);
         requestAnimationFrame(animate, renderer.domElement);
     };// the end of animate()
-        
-        
-        
+
+
+
     animate(Date.now());
     //  document.body.appendChild(c);
     var down = false;
@@ -688,13 +680,13 @@ console.log('mic one connected.');
     var scaleModel = fbank.getScaleModel();
     //console.log(scaleModel);
 
-   
 
-    var oscillator_list = {}; 
-        
 
-        
-    
+    var oscillator_list = {};
+
+
+
+
     var interval = 1, alpha = 0.9, lastKeyTime = 0;
     var index = 30;
     var previousKeyPressTime = context.currentTime;
@@ -702,7 +694,7 @@ console.log('mic one connected.');
     function equalPowerCrossfade (percent, gain1, gain2, amp1, amp2){
         var level1 = Math.cos(percent*0.5*Math.PI);
         var level2 = Math.cos((1.0-percent) * 0.5 * Math.PI);
-        gain1.gain.value = level1 * amp1; 
+        gain1.gain.value = level1 * amp1;
         gain2.gain.value = level2 * amp2 ;
     }
 
@@ -747,7 +739,7 @@ console.log('mic one connected.');
         else if (keycode == 93){
             currentBook++;
             currentBook%=3;
-            geoindex = 0; 
+            geoindex = 0;
             if (currentBook == 2){
                 chatter.start(0);
                 reverseGate.params.mix.set(0.0,context.currentTime,1);
@@ -765,23 +757,24 @@ console.log('mic one connected.');
                 interval = 1.0;
                 uniforms.time.value = 0;
                 for (var i=0; i< numBook; i++)
-                    books[i].material = shaderMaterial;            
+                    books[i].material = shaderMaterial;
             }
-           
+
         }
         else if (currentBook ==2 && lineindex[currentBook] >4 && (keycode == 69 || keycode == 79)){ // either e or o
-        // clear the whole writing if commnad enter pressed. 
-            
-            var dur = (keyInterval+0.1) / (keyIntervalCnt+0.1) / 4;
+        // clear the whole writing if commnad enter pressed.
+
+            var dur = (keyInterval+0.1) / (keyIntervalCnt+0.1) / 4; // noise burst depends on the interval
             noiseBurstadsr.play(0,dur, dur, dur, dur,1.0,0.1);
             noiseBurstOn = true;
             setTimeout(function(){
                 noiseBurstOn = false;
                 uniforms.noise.value = 0.0;
             }, dur * 4000)
-        }   
-        else if(ev.shiftKey == true && keycode == 13){
+        }
+        else if(ev.shiftKey == true && keycode == 13){ // shift enter
             if ( currentBook == 2){
+              // end the piece.
                 noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime );
                 noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime +8);
                 uniforms.time.value -= 0.1;
@@ -799,7 +792,7 @@ console.log('mic one connected.');
             keydown_debug_color_index++;
             keydown_debug_color_index%=randomcolor.length;
             $("#keydown_debug").css("background-color", randomcolor[keydown_debug_color_index]);
-        } 
+        }
     };
 
     window.onkeyup = function(ev){
@@ -812,7 +805,7 @@ console.log('mic one connected.');
             keyup_debug_color_index++;
             keyup_debug_color_index%=randomcolor.length;
             $("#keyup_debug").css("background-color", randomcolor[keyup_debug_color_index]);
-        }  
+        }
     };
     var currentOuput = 0.0; // noise burst output
 
@@ -820,7 +813,7 @@ console.log('mic one connected.');
 
         var keycode = ev.which;
 
-      
+
 
         if ( ev.shiftKey == true && ev.which == 13)
         {
@@ -828,7 +821,7 @@ console.log('mic one connected.');
         }
 
 
-        // update the visual first. 
+        // update the visual first.
 
          var code = strBook[currentBook].charCodeAt(strBook[currentBook].length-1);
         if (code == 8)
@@ -847,27 +840,26 @@ console.log('mic one connected.');
             strBook[currentBook] += "\n";
             addLetter(code,strBook[currentBook].length-1,0);
         }
-        
+
 
         var currentTime = context.currentTime;
 
         keyInterval += currentTime - previousKeyPressTime;
-        keyIntervalCnt ++; 
+        keyIntervalCnt ++;
         previousKeyPressTime = currentTime;
-        // play dron if interval is over threhold? 
-        if ( keycode == 13 || keycode == 32 ){
+        // play dron if interval is over threhold?
+        if ( keycode == 13 || keycode == 32 ){ // space or enter
             var avgInterval = keyInterval/keyIntervalCnt;
-                // play drone sound 
+                // play drone sound
             console.log("space or enter : " + avgInterval + "(" + keyInterval + "," + keyIntervalCnt + ")");
 
-            if ( avgInterval > 0.4){
+            if ( avgInterval > 0.4){ // trigger sawtooth drone if interval is slow.
                 var randompitch = [26,27,28,29,29,34][getRandomInt(0,5)];
                 console.log("drone triggered : " + randompitch);
                 var osc = new Oscillator(randompitch, 'sawtooth');
                 var adsr = new ADSR();
                 osc.node.connect(adsr.node);
                 adsr.node.connect(reverb2);
-
                 osc.play(0);
                 osc.stop(context.currentTime +keyInterval);
                 var dur = keyInterval/4;
@@ -876,14 +868,11 @@ console.log('mic one connected.');
             keyInterval = 0;
             keyIntervalCnt = 0;
         }
-        else if (keycode == 63){
+        else if (keycode == 63){ // page turn
             state ++;
-            if (state == 1){
-
-               // reverseGate.set('mix', 1.0,context.currenTime + 10);
-               
+            if (state == 1){ // the 2nd page
                 delay.params.mix.set(0.0,context.currentTime,1);
-                delay.params.mix.set(0.0,context.currentTime+60,1);    
+                delay.params.mix.set(0.0,context.currentTime+60,1);
                 delay.params.mix.set(1.0,context.currentTime+90,1);
                 delay.params.mix.set(0.0,context.currentTime+120,1);
 
@@ -897,29 +886,15 @@ console.log('mic one connected.');
                 gain_filterbank.gain.linearRampToValueAtTime(0.3, context.currentTime + 3);
 
                 cverb.set('output',0.3);
-
-
             }
         }
 
-
-        
-        //gain.connect(convolver);
-      //  gain.connect(level_reverb);
-       // convolver.connect(compressor);
-    //    gain.connect(context.destination);
-
         var randomPitch = 24 + getRandomInt(-3,12);
-    
+// random triangle sound per keypress
         var osc = new Oscillator(randomPitch, 'triangle');
                 var adsr = new ADSR();
                 osc.node.connect(adsr.node);
-      //          adsr.node.connect(level_reverb);
-             //   osc.adsr = adsr;
-               // oscillator_list[24] = osc;
-    //              }
 
-  
             osc.play(0);
             osc.stop(context.currentTime + 3.2);
             adsr.play(0,0.1,0.1,2,1);
@@ -930,25 +905,21 @@ console.log('mic one connected.');
         interval = interval * alpha + (1-alpha) * (currentTime - lastKeyTime) / 1000.0;
         if ((currentTime - lastKeyTime) / 1000.0 > 0.5)
             interval = 1;
-        //interval = (currentTime - lastKeyTime);
-      //  console.log(interval);
+
         lastKeyTime = currentTime;
          if(DEBUG){
             $("#keypress_debug").html(keycode);
-    //        $("#start_down_debug").html(pos[0]);
-    //        $("#end_down_debug").html(pos[1]);
 
             keypress_debug_color_index++;
             keypress_debug_color_index%=randomcolor.length;
             $("#keypress_debug").css("background-color", randomcolor[keypress_debug_color_index]);
-        }  
+        }
 
 
 
         if (state%2== 1){
             var source = context.createBufferSource();
-            var gain = context.createGain();
-            gain.gain.value = 0.1;
+
             source.buffer = buffers['tick1'];
             //source.playbackRate.value = 1 + Math.random()*2;
             source.playbackRate.value = 1 + (keycode-97) / 60*4;
@@ -1002,8 +973,8 @@ console.log('mic one connected.');
                 shaderMaterial.depthTest = false;
                 for (var i=0; i< numBook; i++)
                     books[i].material = shaderMaterial;
-                // turn on reverb gain slowly. 
-                
+                // turn on reverb gain slowly.
+
            }
 
 
@@ -1011,7 +982,7 @@ console.log('mic one connected.');
         //var str = BOOK;
      //   j = 0; ln = 0;
      books[currentBook].geometry = geo[currentBook][geoindex];
-        
+
     }
 
     var wheelHandler = function(ev) {
@@ -1055,7 +1026,7 @@ console.log('mic one connected.');
 */
         }
     };
-  
+
     window.onmousedown = function (ev){
        if (ev.target == renderer.domElement) {
             down = true;
@@ -1065,7 +1036,7 @@ console.log('mic one connected.');
 //function ScissorVoice(noteNum, numOsc, oscType, detune){
         if ( currentBook >= 1){
             if (drone){
-                drone.output.noteOff(0,1,drone.maxGain);    
+                drone.output.noteOff(0,1,drone.maxGain);
                 drone.stop(context.currentTime + 1);
             }
            drone = new ScissorVoice(pitchListforDrone[pitchIndex],getRandomInt(3,10),"triangle", 12);
@@ -1076,17 +1047,17 @@ console.log('mic one connected.');
            pitchIndex %= pitchListforDrone.length;
         }
     };
-    window.onmouseup = function(){ 
-        down = false; 
+    window.onmouseup = function(){
+        down = false;
         if ( drone && currentBook >= 1)
         { // ADSR.prototype.noteOff= function(delay, R, sustainlevel){
-            drone.output.noteOff(0,1,drone.maxGain);    
+            drone.output.noteOff(0,1,drone.maxGain);
             drone.stop(context.currentTime + 1);
             delete drone;
-            
+
 
         }
     };
-    
-    
+
+
 };

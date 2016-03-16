@@ -414,7 +414,6 @@
             var it = cm.getDoc().getEditor();
             var timestamp = (new Date()).getTime()- it.lw_startTime,
                 index = it.lw_liveWritingJsonData.length;
-            delete changeObject.removed; // to reduce data
             it.lw_liveWritingJsonData[index] = {"p":"c", "t":timestamp, "d":changeObject};
             it.lw_justAdded = true;
             if(DEBUG)console.log("change event :" +JSON.stringify(it.lw_liveWritingJsonData[index])  + " time:" + timestamp);
@@ -477,11 +476,18 @@
           var it = this;
           if(it.lw_pause)
             return;
+          if( it.lw_data_index< 0)
+          {
+            it.lw_data_index = 0;
+          }// this can happen due to the slider
+          if ( it.lw_data_index == it.lw_data.length){
+            return;
+          }
           var startTime = it.lw_startTime;
           var currentTime = (new Date()).getTime();
           var nextEventInterval = startTime + it.lw_data[it.lw_data_index]["t"]/it.lw_playback -  currentTime;
 
-          if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " currentData:",JSON.stringify(it.lw_data[0]));
+          //if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " currentData:",JSON.stringify(it.lw_data[0]));
           // let's catch up some of the old changes.
           while(it.lw_data[it.lw_data_index] != undefined
             && nextEventInterval<0 && it.lw_data_index < it.lw_data.length-1){
@@ -492,21 +498,33 @@
            // recurring trigger
           it.lw_next_event = setTimeout(function(){it.lw_triggerPlay();}, nextEventInterval);
         },
-        triggerPlayCodeMirrorFunc = function(){
+        triggerPlayCodeMirrorFunc = function(reverse, skipSchedule){
             var it = this;
             var event = it.lw_data[it.lw_data_index];
             it.getDoc().getEditor().focus();
-            if(DEBUG) console.log(JSON.stringify(event));
+            if(DEBUG) console.log("reverse:" + reverse + " " + JSON.stringify(event));
             if (event['p'] == "c"){ // change in content
                 var inputData    = event['d'];
                 var startLine = inputData['from']['line'],
                     startCh = inputData['from']['ch'],
                     endLine = inputData['from']['line'],
                     endCh = inputData['from']['ch'],
-                    text = inputData['text'].join('\n'),
-                    inputType = inputData['origin '];
-                it.getDoc().setSelection(inputData['from'], inputData['to'], {scroll:true});
-                it.getDoc().replaceSelection(text);
+                    inputType = inputData['origin'],
+                    text = inputData['text'];
+
+                if(reverse){
+                  var removed = inputData['removed'];
+                  var toRemove = {"line": text.length-1 + startLine, "ch": (text.length ==1 ? startCh + text[0].length : text[removed.length-1].length)}
+                  it.getDoc().setSelection(inputData['from'], toRemove, {scroll:true});
+                  removed = removed.join('\n');
+                  it.getDoc().replaceSelection(removed);
+                }
+                else{
+                  text = text.join('\n');
+                  it.getDoc().setSelection(inputData['from'], inputData['to'], {scroll:true});
+                  it.getDoc().replaceSelection(text);
+                }
+
             }
             else if (event['p'] == "u"){ // cursor change
                 it.getDoc().setSelection(event['s'], event['e'], {scroll:true});
@@ -519,23 +537,27 @@
             else if (event['p'] == "s"){ // scroll
                 it.scrollTo(event["f"], event["to"]);
             }
-            it.lw_data_index++;
-            // chcek the final text once it is done.
+            if(reverse){
+              it.lw_data_index--;
+            }else {
+              it.lw_data_index++;
+            }
+                        // chcek the final text once it is done.
 
             if (it.lw_data_index == it.lw_data.length){
                 if(DEBUG)console.log("done replay");
                 // let's stay in the final index
-                it.lw_data_index = it.lw_data.length -1;
+              //  it.lw_data_index = it.lw_data.length -1;
                 if ( it.lw_finaltext != it.getValue())
                 {
                     console.log("There is discrepancy. Do something");
                     if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.finaltext +":"+ it.getValue());
                 }
-                // change the play button to pause.
-                return;
             }
+
             // scheduling part
-            it.lw_scheduleNextEvent();
+            if (!skipSchedule)
+              it.lw_scheduleNextEvent();
 
         },
         triggerPlayAceFunc =  function(reverse, skipSchedule){
@@ -547,7 +569,6 @@
           it.focus();
           if(DEBUG) console.log("reverse:" + reverse + " " + JSON.stringify(event));
           if (event['p'] == "c"){ // change in content
-
               var inputData    = event['d'];
               var startLine = inputData['start']['row'],
                   startCh = inputData['start']['column'],
@@ -608,7 +629,7 @@
           // chcek the final text once it is done.
           if (it.lw_data_index == it.lw_data.length){
               if(DEBUG)console.log("done replay");
-              it.lw_data_index = it.lw_data.length -1;
+          //    it.lw_data_index = it.lw_data.length -1;
 
               if ( it.lw_finaltext != it.getValue())
               {
@@ -618,10 +639,9 @@
 
               $('.play').trigger("click");
 
-              return;
           }
 
-          // scheduling part (only if this is not reverse operation)
+          // scheduling part
           if (!skipSchedule)
             it.lw_scheduleNextEvent();
 
@@ -805,13 +825,14 @@
             // chcek the final text once it is done.
             if (it.lw_data_index == it.lw_data.length){
                 if(DEBUG)console.log("done replay");
-                it.lw_data_index = it.lw_data.length -1;
+          //      it.lw_data_index = it.lw_data.length -1;
 
                 if (it.lw_finaltext != it.value){
                     console.log("There is discrepancy. Do something");
                     if(DEBUG) alert("LiveWritingAPI: There is discrepancy. Do something" + it.lw_finaltext +":"+ it.value);
                 }
-                return;
+
+                $('.play').trigger("click");
             }
             // scheduling part
             it.lw_scheduleNextEvent();
@@ -819,12 +840,14 @@
         updateSlider = function(it){
           if(it.lw_pause) return;
           var currentTime = (new Date()).getTime();
-
-          $(".livewriting_slider").slider("value",(currentTime -  it.lw_startTime) * it.lw_playback);
-          if ( (currentTime -  it.lw_startTime) * it.lw_playback > it.lw_endTime){
+          var value = (currentTime -  it.lw_startTime) * it.lw_playback;
+          it.lw_sliderValue = value;
+          $(".livewriting_slider").slider("value",value);
+          if ( value > it.lw_endTime){
             livewritingPause(it);
             return;
           }
+
           setTimeout(function(){
               updateSlider(it);
           },SLIDER_UPDATE_INTERVAL);
@@ -850,16 +873,26 @@
         },
         sliderGoToEnd = function(it){
           var max = $( ".livewriting_slider" ).slider( "option", "max" );
-          it.setValue(it.lw_finaltext);
-          it.moveCursorTo(0,0);
+          if(it.lw_type == "ace"){
+            it.setValue(it.lw_finaltext);
+            it.moveCursorTo(0,0);
+          }
+          else if(it.lw_type == "codemirror"){
+            it.getDoc().setValue(it.lw_finaltext);
+            it.getDoc().setSelection({"line":0, "ch":0},{"line":0, "ch":0}, {scroll:true});
+          }
           it.lw_data_index = it.lw_data.length-1;
-          //sliderEventHandler(it,max);
           livewritingPause(it);
           $(".livewriting_slider").slider("value", max);
         },
         sliderGoToBeginning = function(it){
-          //sliderEventHandler(it,0);
-          it.setValue(it.lw_initialText)
+          if(it.lw_type == "ace"){
+            it.setValue(it.lw_initialText)
+          }
+          else if(it.lw_type == "codemirror"){
+            it.getDoc().setValue(it.lw_initialText);
+          }
+
           it.lw_data_index = 0;
           livewritingPause(it);
           $(".livewriting_slider").slider("value", 0);
@@ -949,24 +982,32 @@
           it.lw_startTime = currentTime - time/it.lw_playback;
           if (!it.lw_pause)
             clearTimeout(it.lw_next_event);
-          // this while loop handle slider move regardless it is playing or not.
-          while(time < it.lw_data[it.lw_data_index].t){
-            it.lw_triggerPlay(true, true);
-            if (it.lw_data_index < 0){
-              it.lw_data_index =0;
-              break;
+          if ( it.lw_sliderValue > time) // backward case
+          {
+            while(it.lw_data_index>0  && time < it.lw_data[it.lw_data_index-1].t){
+              it.lw_data_index--;
+              it.lw_triggerPlay(true, true);
+              it.lw_data_index++;
+              it.lw_data_index = Math.max(it.lw_data_index,0);
+              if(DEBUG)console.log("slider backward:" + it.lw_data_index);
+              if(DEBUG)console.log("value:" + it.getValue() + "length:" + it.getValue().length);
+            }
+          } else { // forward case
+            while(it.lw_data_index<it.lw_data.length
+              && time > it.lw_data[it.lw_data_index].t){
+                //            && it.lw_sliderValue < it.lw_data[it.lw_data_index].t){
+              it.lw_triggerPlay(false, true);
+              if(DEBUG)console.log("slider forward(time:" + time + "):" + it.lw_data_index);
+              if(DEBUG)console.log("value:" + it.getValue());
             }
           }
-
           // this handles forward when pause.
           //if(it.lw_pause){
-          while(it.lw_data[it.lw_data_index+1] != undefined
-            && time > it.lw_data[it.lw_data_index+1].t){
-            it.lw_triggerPlay(false, true);
-          }
-          if (!it.lw_pause)
+          it.lw_sliderValue = time;
+
+          if (!it.lw_pause){
             it.lw_scheduleNextEvent();
-          //}
+          }
         },
         createNavBar = function(it){
           if(DEBUG)console.log("create Navigation Bar");
@@ -976,22 +1017,46 @@
           if ( it.lw_type == "ace"){
             $('.ace_editor').after("<div class = 'livewriting_navbar'></div>");
             var navbar = $('.livewriting_navbar');
+            navbar.draggable(); // require jquery ui
             navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button></div>')
             navbar.append('<div id="lw_toolbar" class="livewriting_navbar_speed"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
             navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
 
             configureToolbar(it);
 
-            var slider  =   $('.livewriting_slider').slider({
+            var slider  = $('.livewriting_slider').slider({
               min: 0,
-              max : end_time,
+              max : end_time + 1,
               slide: function(event,ui){
                 sliderEventHandler(it,ui.value);
               }
             });
 
             updateSlider(it);
-          } // end of ace.
+          }else if ( it.lw_type == "codemirror"){
+              if($('.CodeMirror').length>1){
+                if(DEBUG) console.error("For now live writing does not support multiple editors.");
+              }
+              $('.CodeMirror').after("<div class = 'livewriting_navbar'></div>");
+              var navbar = $('.livewriting_navbar');
+              navbar.draggable(); // require jquery ui
+
+              navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button></div>')
+              navbar.append('<div id="lw_toolbar" class="livewriting_navbar_speed"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
+              navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
+
+              configureToolbar(it);
+
+              var slider = $('.livewriting_slider').slider({
+                min: 0,
+                max : end_time + 1,
+                slide: function(event,ui){
+                  sliderEventHandler(it,ui.value);
+                }
+              });
+
+              updateSlider(it);
+            } // end of ace.
         },
         createLiveWritingTextArea= function(it, type, options, initialValue){
                 var defaults = {
@@ -1063,7 +1128,7 @@
                     }
                     else if (type == "ace"){
                       it.on("change", changeAceFunc);
-                      it.on("changeCursor", cursorAceFunc);
+                      //it.on("changeCursor", cursorAceFunc);
                       it.on("changeSelection", cursorAceFunc);
                       it.session.on("changeScrollLeft", function(number){
                         scrollLeftAceFunc(it,number); // this is needed to pass the editor instance. by deafult it has edit session.
@@ -1167,12 +1232,13 @@
             it.lw_version = json_file["version"];
             it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
             it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea
-            it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:null);
+            it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:"");
             it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:"");
             it.value = it.lw_initialText;
             it.lw_data_index = 0;
             it.lw_data=json_file["action"];
             it.lw_endTime = it.lw_data[it.lw_data.length-1].t;
+            //it.lw_endTime = json_file.localEndtime - json_file.localStarttime;
         //    if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
             if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" );
 
