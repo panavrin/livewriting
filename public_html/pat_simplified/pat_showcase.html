@@ -17,10 +17,9 @@
         vec4 p = projectionMatrix * mvPosition;
         vUv = uv;
         gl_Position = p;
+
         color = 0.0;
-        if(coloredStr[int(charIndex)] == 1){
-          color = volume;
-        }
+
       }
     </script>
       <script id="fragment0" type="text/x-glsl-frag">
@@ -39,8 +38,6 @@
         vec4 mix_diffuse = mix(diffuse, diffuse_white,color);
 
         gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
-        //gl_FragColor = mix(diffuse, vec4(1.0,0,0,1), color);
-      //  gl_FragColor = diffuse;
       }
     </script>
 <script id="vertex1" type="text/x-glsl-vert">
@@ -59,9 +56,7 @@
         vUv = uv;
         gl_Position = p;
         color = 0.0;
-        if(coloredStr[int(charIndex)] == 1){
-          color = volume;
-        }
+
         //      index = 20.0;
     }
 </script>
@@ -88,7 +83,6 @@
         vec4 mix_diffuse = mix(diffuse, diffuse_white,color);
 
         gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
-        //gl_FragColor = diffuse;
       }
     </script>
 
@@ -140,6 +134,9 @@
         color = 0.0;
         if(coloredStr[int(charIndex)] == 1){
           color = volume;
+        }
+        if(coloredStr[int(charIndex)] == 2){
+          color = 1.0-volume;
         }
       }
     </script>
@@ -228,6 +225,9 @@
         if(coloredStr[int(charIndex)] == 1){
           color = volume;
         }
+        if(coloredStr[int(charIndex)] == 2){
+          color = 1.0-volume;
+        }
       }
     </script>
       <script id="fragment3" type="text/x-glsl-frag">
@@ -245,16 +245,6 @@
         uv.y = uv.y + sin(uv.x  * 1000.0 * time)* noise ;//+ sin(uv.x * 2000.0)*0.001 * volume2;
         uv.x = uv.x + cos(tan(uv.y)  * 1000.0 * time)* noise ;
         vec4 diffuse = texture2D(map, uv);
-       /*  vec4 diffuse_white = diffuse;
-        //vec4 diffuse_green = diffuse;
-        //vec4 diffuse_blue = diffuse;
-        diffuse_white.r = 1.0;
-        diffuse_white.g = 1.0;
-        diffuse_white.b = 1.0;
-
-        vec4 mix_diffuse = mix(diffuse, diffuse_white,0.5-interval/2.0);
-
-        gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
         vec4 diffuse_white = diffuse;
         diffuse_white.r = 1.0;
         diffuse_white.g = 1.0;
@@ -267,7 +257,7 @@
       }
     </script>
     <script src="../js/jquery-1.11.1.min.js" type="text/javascript"></script>
-        <script src="../js/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="../js/jquery-ui.min.js" type="text/javascript"></script>
 
     <script src="Three.js"></script>
     <script src="nfme.js"></script>

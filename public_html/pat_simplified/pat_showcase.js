@@ -139,10 +139,30 @@ window.onload = function() {
                               navigator.msGetUserMedia);
     var level_original = context.createGain();
     var level_reverb = context.createGain();
-    var pitch_convolver = context.createConvolver();
+    var pitch_convolver = [];
+    var pitch_convolver_id = 0;
+    var pitch_convolver_ADSR = [];
+    pitch_convolver[0] = context.createConvolver();
+    pitch_convolver[1] = context.createConvolver();
+    pitch_convolver_ADSR[0] = new ADSR();
+    pitch_convolver_ADSR[1] = new ADSR();
     var reverb = context.createConvolver();
     var reverb2 = context.createConvolver();
     var chatter = context.createBufferSource();
+
+    var pause_handle = null;
+    var pause1 = context.createBufferSource();;
+    var pause2 = context.createBufferSource();;
+    var pause3 = context.createBufferSource();;
+
+    var pause1Gain = context.createGain();
+    var pause2Gain = context.createGain();
+    var pause3Gain = context.createGain();
+
+    pause1Gain.connect(level_reverb);
+    pause2Gain.connect(level_reverb);
+    pause3Gain.connect(level_reverb);
+
     var chatter_filterGain = context.createGain();
     var chatter_reverbGain = context.createGain();
     var sourceMic;
@@ -195,7 +215,12 @@ window.onload = function() {
     masterGain.connect(context.destination);
     level_original.connect(compressor); // ONOFF live mic sound
     level_reverb.connect(compressor);
-    pitch_convolver.connect(level_reverb);
+    pitch_convolver[0].connect(pitch_convolver_ADSR[0].node);
+    pitch_convolver[1].connect(pitch_convolver_ADSR[1].node);
+    pitch_convolver_ADSR[0].node.connect(level_reverb);
+    pitch_convolver_ADSR[1].node.connect(level_reverb);
+    pitch_convolver_ADSR[0].noteOn(0,0,0, 1, 1);
+
     reverb.connect(level_reverb);
     reverb2.connect(level_reverb);
 
@@ -230,13 +255,25 @@ window.onload = function() {
       var sourceType = this.sourceType;
         if (navigator.getUserMedia) {
             console.log('getUserMedia supported.');
-            navigator.getUserMedia ({
+            var audioOpts = {
               audio: {
-                          optional: [{
-                             sourceId: MicId
-                          }]
-                      }
-              },
+                optional: [
+                  //{sourceId: audio_source},  // do it like this to take the default audio src
+                  {googAutoGainControl: false},
+                  {googAutoGainControl2: false},
+                  {googEchoCancellation: false},
+                  {googEchoCancellation2: false},
+                  {googNoiseSuppression: false},
+                  {googNoiseSuppression2: false},
+                  {googHighpassFilter: false},
+                  {googTypingNoiseDetection: false},
+                  {googAudioMirroring: false},
+                  {sourceId: MicId}
+                ]
+             },
+             video: false
+            };
+            navigator.getUserMedia (audioOpts,
             // Success callback
               function(stream) {
                   if (sourceType == "visual") {
@@ -247,7 +284,8 @@ window.onload = function() {
                   else if (sourceType == "audio"){ // first selected (e.g. mic from audio interface)
                       sourceMic = context.createMediaStreamSource(stream);
                       sourceMic.connect(level_original); // ON/OFF
-                      sourceMic.connect(pitch_convolver); // ON/OFF
+                      sourceMic.connect(pitch_convolver[0]); // ON/OFF
+                      sourceMic.connect(pitch_convolver[1]); // ON/OFF
                       sourceMic.connect(reverb); // ON/OFF
                       console.log('separate mic connected.');
                   }
@@ -300,12 +338,29 @@ window.onload = function() {
     var buffers = {};
 
     loadSounds(buffers, soundmap, function(){
-        pitch_convolver.buffer = buffers['june_C'];
+        pitch_convolver[0].buffer = buffers['june_C'];
         reverb.buffer = buffers['ir1'];
         reverb2.buffer = buffers['sus1'];
         chatter.buffer = buffers['chatter'];
-    });
+        if(!pauseFlag)return;
+        pause1.buffer = buffers['pause1'];
+        pause1.loop = true;
+        pause2.buffer = buffers['pause2'];
+        pause2.loop = true;
 
+        pause1.connect(pause1Gain);
+        pause2.connect(pause2Gain);
+        pause3.connect(pause2Gain);
+        pause1Gain.gain.value = 0;
+        pause2Gain.gain.value = 0;
+        pause3Gain.gain.value = 0;
+        pause1.start(0);
+        pause2.start(0);
+        pause3.start(0);
+
+
+    });
+    var pauseStart = false;
     var amplitudeArray =  new Uint8Array(analyser.frequencyBinCount);
     var amplitudeArray2 =  new Uint8Array(analyser.frequencyBinCount);
     var amplitudeArray3 =  new Uint8Array(noiseBurstAnalyser.frequencyBinCount);
@@ -343,7 +398,7 @@ window.onload = function() {
     var geoindex = 0;
     var geo = {};
     var books = [];
-    var currengPage = 0;
+    var currentPage = 0;
     var strPage = [];
     var lineindex = [];
 
@@ -373,6 +428,7 @@ window.onload = function() {
     var letterPerLine = 50;
     var linePerScreen = 10;
     var offset = 1.0;
+    var chatterStart = false;
 //    var offset = 8.0;
     var attributes = {
         strIndex: {type: 'f', value: [] },
@@ -381,54 +437,54 @@ window.onload = function() {
 
     function addLetter(code, strIndex, sizeFactor){
         var alphabetIndex = String.fromCharCode(code).toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0) + 1;
-        console.log("code: " + String.fromCharCode(code)+ " alphabetIndex:" + alphabetIndex)
+      //  console.log("code: " + String.fromCharCode(code)+ " alphabetIndex:" + alphabetIndex)
         if(alphabetIndex < 1 || alphabetIndex > 26 )
           alphabetIndex = 0;
-        console.log("code: " + String.fromCharCode(code)+ " alphabetIndex:" + alphabetIndex)
+        //console.log("code: " + String.fromCharCode(code)+ " alphabetIndex:" + alphabetIndex)
         var cx = code % lettersPerSide;
         var cy = Math.floor(code / lettersPerSide);
         //  var localscaleX = scaleX * (1+sizeFactor);
         var localOffset = offset * (1+sizeFactor*2.0);
-        var localY = currentLine[currengPage]*scaleY - (sizeFactor/4.0);
-        geo[currengPage][geoindex].vertices.push(
-            new THREE.Vector3( currIndex[currengPage]*scaleX, localY, 0 ), // left bottom
-            new THREE.Vector3( currIndex[currengPage]*scaleX+localOffset, localY, 0 ), //right bottom
-            new THREE.Vector3( currIndex[currengPage]*scaleX+localOffset, localY+localOffset, 0 ),// right top
-            new THREE.Vector3( currIndex[currengPage]*scaleX, localY+localOffset, 0 )// left top
+        var localY = currentLine[currentPage]*scaleY - (sizeFactor/4.0);
+        geo[currentPage][geoindex].vertices.push(
+            new THREE.Vector3( currIndex[currentPage]*scaleX, localY, 0 ), // left bottom
+            new THREE.Vector3( currIndex[currentPage]*scaleX+localOffset, localY, 0 ), //right bottom
+            new THREE.Vector3( currIndex[currentPage]*scaleX+localOffset, localY+localOffset, 0 ),// right top
+            new THREE.Vector3( currIndex[currentPage]*scaleX, localY+localOffset, 0 )// left top
         );
         //   console.log("sizeFactor:" + sizeFactor + " added(" + (j*scaleX) + "," + (j*scaleX + offset) +" strIndex : " + strIndex + ")");
-        var vcenterX = currIndex[currengPage];
-        var vcenterY = (currentLine[currengPage]*scaleY*2.0+offset) / 2.0;
+        var vcenterX = currIndex[currentPage];
+        var vcenterY = (currentLine[currentPage]*scaleY*2.0+offset) / 2.0;
         for (var k=0; k<4;k++){
           attributes.strIndex.value[strIndex*4+k] = strIndex;// THREE.Vector2(6.0,12.0);
           attributes.charIndex.value[strIndex*4+k] = alphabetIndex;// THREE.Vector2(6.0,12.0);
         }
         var face = new THREE.Face3(strIndex*4+0, strIndex*4+1, strIndex*4+2);
-        geo[currengPage][geoindex].faces.push(face);
+        geo[currentPage][geoindex].faces.push(face);
         face = new THREE.Face3(strIndex*4+0, strIndex*4+2, strIndex*4+3);
-        geo[currengPage][geoindex].faces.push(face);
+        geo[currentPage][geoindex].faces.push(face);
         var ox=(cx)/lettersPerSide, oy=(cy+0.05)/lettersPerSide, off=0.9/lettersPerSide;
       //  var sz = lettersPerSide*fontSize;
-        geo[currengPage][geoindex].faceVertexUvs[0].push([
+        geo[currentPage][geoindex].faceVertexUvs[0].push([
             new THREE.Vector2( ox, oy+off ),
             new THREE.Vector2( ox+off, oy+off ),
             new THREE.Vector2( ox+off, oy )
         ]);
-        geo[currengPage][geoindex].faceVertexUvs[0].push([
+        geo[currentPage][geoindex].faceVertexUvs[0].push([
             new THREE.Vector2( ox, oy+off ),
             new THREE.Vector2( ox+off, oy ),
             new THREE.Vector2( ox, oy )
         ]);
 
-        if (code == 10 || code == 13 || currIndex[currengPage]  == letterPerLine) {
-            currentLine[currengPage]--;
-            prevJLastLine[currengPage] = currIndex[currengPage];
-            currIndex[currengPage]=0;
+        if (code == 10 || code == 13 || currIndex[currentPage]  == letterPerLine) {
+            currentLine[currentPage]--;
+            prevJLastLine[currentPage] = currIndex[currentPage];
+            currIndex[currentPage]=0;
         } else {
-            currIndex[currengPage]++;
-            if (rightMostPosition<currIndex[currengPage]){
-                rightMostXCoord = currIndex[currengPage]*scaleX+offset;
-                rightMostPosition = currIndex[currengPage];
+            currIndex[currentPage]++;
+            if (rightMostPosition<currIndex[currentPage]){
+                rightMostXCoord = currIndex[currentPage]*scaleX+offset;
+                rightMostPosition = currIndex[currentPage];
             }
         }
     } // the end of addLetter
@@ -463,7 +519,7 @@ window.onload = function() {
     camera.position.z = radius;
     scene.add(camera);
 
-    var str = strPage[currengPage];
+    var str = strPage[currentPage];
     var centerX = (letterPerLine) * scaleX / 2.0;
     var centerY = (-linePerScreen * scaleY )/2.0;
 
@@ -484,7 +540,7 @@ window.onload = function() {
 
     var width = window.innerWidth,
         height = window.innerHeight;
-  
+
     var uniforms = {
         time: {type:"f", value:0.0},
         interval : {type:"f", value:0.0},
@@ -596,14 +652,37 @@ window.onload = function() {
         volume = alpha * (resultArr[0]/128.0) + (1-alpha) * volume;
         uniforms.volume.value = volume;
         freqIndex = resultArr[1];
-        if(currengPage == 1){
+        if(currentPage == 1){
             camera.rotation.y -= 0.00015;
             uniforms.time.value += 0.05;
             uniforms.interval.value = Math.max(Math.min(interval,1.0),0.0);
         }
-        else if ( currengPage == 2){
+        else if ( currentPage == 2){
             camera.rotation.y -= 0.00005;
             uniforms.time.value -= 0.12;
+            if(pauseFlag){
+              pause1.stop(3);
+              pause2.stop(3);
+              pause3.stop(3);
+              pause1.disconnect(pause1Gain);
+              pause2.disconnect(pause2Gain);
+              pause3.disconnect(pause3Gain);
+              pause1Gain.disconnect(level_reverb);
+              pause2Gain.disconnect(level_reverb);
+              pause3Gain.disconnect(level_reverb);
+              if(pause1){
+                pause1= null;
+                pause1Gain = null;
+              }
+              if(pause2){
+                pause2= null;
+                pause2Gain = null;
+              }
+              if(pause3){
+                pause3= null;
+                pause3Gain = null;
+              }
+            }
 
         }
         alpha = 0.85;
@@ -660,18 +739,18 @@ window.onload = function() {
             ev.preventDefault();
             geoindex++;
             geoindex%=2;
-            geo[currengPage][geoindex] = geo[currengPage][geoindex].clone();
-            books[currengPage].geometry = geo[currengPage][geoindex];
-            if ( currIndex[currengPage] == 0 )
+            geo[currentPage][geoindex] = geo[currentPage][geoindex].clone();
+            books[currentPage].geometry = geo[currentPage][geoindex];
+            if ( currIndex[currentPage] == 0 )
             {
-                currentLine[currengPage] ++;
-                currIndex[currengPage] = prevJLastLine[currengPage];
-                strPage[currengPage] = strPage[currengPage].substring(0,strPage[currengPage].length-2);
+                currentLine[currentPage] ++;
+                currIndex[currentPage] = prevJLastLine[currentPage];
+                strPage[currentPage] = strPage[currentPage].substring(0,strPage[currentPage].length-2);
             }
             else{
-               currIndex[currengPage]--;
+               currIndex[currentPage]--;
             }
-            strPage[currengPage] = strPage[currengPage].substring(0,strPage[currengPage].length-1);
+            strPage[currentPage] = strPage[currentPage].substring(0,strPage[currentPage].length-1);
         }
         else if (keycode == 18){
             filterOn = !filterOn;
@@ -687,15 +766,18 @@ window.onload = function() {
             }
         }
         else if (keycode == 93){
-            currengPage++;
-            currengPage%=3;
+            currentPage++;
+            currentPage%=3;
             geoindex = 0;
-            if (currengPage == 2){
+            if (currentPage == 2){
+              if(!chatterStart){
                 chatter.start(0);
                 reverseGate.params.mix.set(0.0,context.currentTime,1);
                 reverseGate.params.mix.set(1.0,context.currentTime + 90,1);
+                chatterStart = true;
+              }
             }
-            else if (currengPage == 1){ // the 2nd page
+            else if (currentPage == 1){ // the 2nd page
               // the 2nd page shader
                 var shaderMaterial = new THREE.ShaderMaterial({
                     uniforms : uniforms,
@@ -712,7 +794,7 @@ window.onload = function() {
             }
 
         }
-        else if (currengPage ==2 && lineindex[currengPage] >4 && (keycode == 69 || keycode == 79)){ // either e or o
+        else if (currentPage ==2 && lineindex[currentPage] >4 && (keycode == 69 || keycode == 79)){ // either e or o
         // clear the whole writing if commnad enter pressed.
 
             var dur = (keyInterval+0.1) / (keyIntervalCnt+0.1) / 4;
@@ -725,15 +807,15 @@ window.onload = function() {
             }, dur * 4000)
         }
         else if(ev.shiftKey == true && keycode == 13){
-            if ( currengPage == 2){
-                noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime );
-                noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime +8);
-                uniforms.time.value -= 0.1;
-                noiseBurstOn = true;
-                masterGain.gain.linearRampToValueAtTime(1.0,context.currentTime);
-                masterGain.gain.linearRampToValueAtTime(1.0,context.currentTime + 5);
-                masterGain.gain.linearRampToValueAtTime(0.0,context.currentTime + 8);
-            }
+
+              noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime );
+              noiseBurstadsr.node.gain.linearRampToValueAtTime(1.0, context.currentTime +8);
+              uniforms.time.value -= 0.1;
+              noiseBurstOn = true;
+              masterGain.gain.linearRampToValueAtTime(1.0,context.currentTime);
+              masterGain.gain.linearRampToValueAtTime(1.0,context.currentTime + 5);
+              masterGain.gain.linearRampToValueAtTime(0.0,context.currentTime + 8);
+
         }
           if(DEBUG){
             $("#keydown_debug").html(keycode);
@@ -766,62 +848,82 @@ window.onload = function() {
 
 
 
+        if(ev.ctrlKey == true){
+          // turn on keycode
+          var alphabetIndex = ev.code.charAt(3).toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0) + 1;
+          if (alphabetIndex>=0 && alphabetIndex <=26){
+            coloredStr[alphabetIndex]++;
+            coloredStr[alphabetIndex]%=3;
+            uniforms.coloredStr.value = coloredStr;
+          }
+          return;
+        }
+
+
         if ( ev.shiftKey == true && ev.which == 13) // shift_enter
         {
-            strPage[currengPage] = "";
+            strPage[currentPage] = "";
         }
 
 
         // update the visual first.
 
-        var code = strPage[currengPage].charCodeAt(strPage[currengPage].length-1);
+        var code = strPage[currentPage].charCodeAt(strPage[currentPage].length-1);
         if (code == 8) // //backspace
             return;
+        if(keycode>=49 && keycode<=56){
+          //(delay, R, sustainlevel)
+          pitch_convolver_ADSR[pitch_convolver_id].noteOff(0,2,1);
+          pitch_convolver_id++;
+          pitch_convolver_id%=2;
+          pitch_convolver_ADSR[pitch_convolver_id].noteOn(0,1,0.1, 1, 1);
+
+        }
         if (keycode == 49){ // 1 pressed
-            pitch_convolver.buffer = buffers['june_A'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_A'];
             return;
         } else if (keycode == 50){ // 2 pressed
-            pitch_convolver.buffer = buffers['june_B'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_B'];
             return;
         }
         else if (keycode == 51){ // 3 pressed
-            pitch_convolver.buffer = buffers['june_C'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_C'];
             return;
         }
         else if (keycode == 52){ // 4 pressed
-            pitch_convolver.buffer = buffers['june_D'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_D'];
             return;
         }
         else if (keycode == 53){ // 5 pressed
-            pitch_convolver.buffer = buffers['june_E'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_E'];
             return;
         }
         else if (keycode == 54){ // 6 pressed
-            pitch_convolver.buffer = buffers['june_F'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_F'];
             return;
         }
         else if (keycode == 55){ // 7 pressed
-            pitch_convolver.buffer = buffers['june_G'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_G'];
             return;
         }
         else if (keycode == 56){ // 8 pressed
-            pitch_convolver.buffer = buffers['june_A1'];
+            pitch_convolver[pitch_convolver_id].buffer = buffers['june_A1'];
             return;
         }
 
         var prevgeoindex = geoindex;
         geoindex++;
         geoindex%=2;
-        geo[currengPage][geoindex] = geo[currengPage][prevgeoindex].clone();
-        if ( currengPage == 2 && currentLine[2] <-7 && keycode >= 97 && keycode <=122)
+        geo[currentPage][geoindex] = geo[currentPage][prevgeoindex].clone();
+        if ( currentPage == 2 && currentLine[2] <-7 && keycode >= 97 && keycode <=122)
             keycode -= getRandomInt(0,1) * 32;
-        strPage[currengPage] +=String.fromCharCode(keycode);
-        if (lineindex[currengPage] <=8 && currengPage == 0)
+        strPage[currentPage] +=String.fromCharCode(keycode);
+        if (lineindex[currentPage] <=8 && currentPage == 0)
             volume = 0;
-        addLetter(strPage[currengPage].charCodeAt(strPage[currengPage].length-1),strPage[currengPage].length-1,volume);
-        if (currIndex[currengPage] == letterPerLine){
-            strPage[currengPage] += "\n";
-            addLetter(code,strPage[currengPage].length-1,0);
+        addLetter(strPage[currentPage].charCodeAt(strPage[currentPage].length-1),strPage[currentPage].length-1,volume);
+        if (currIndex[currentPage] == letterPerLine){
+            strPage[currentPage] += "\n";
+            addLetter(code,strPage[currentPage].length-1,0);
         }
 
 
@@ -921,7 +1023,7 @@ window.onload = function() {
 
 
 
-        if (state%2== 1){
+        if (state%2== 1){ // alternate by question mark.
             var source = context.createBufferSource();
             var gain = context.createGain();
             gain.gain.value = 0.1;
@@ -932,9 +1034,9 @@ window.onload = function() {
             source.start(0);
         }
 
-        if (currengPage == 2){ // the third page
-            var length = strPage[currengPage].length;
-            var percent = WX.clamp(length/numCharPage[currengPage],0,1.0);
+        if (currentPage == 2){ // the third page
+            var length = strPage[currentPage].length;
+            var percent = WX.clamp(length/numCharPage[currentPage],0,1.0);
             // slowly increase
             equalPowerCrossfade(percent, chatter_filterGain, chatter_reverbGain, 0.5, 0.1);
             currentOuput = noiseBurst.get('output');
@@ -944,11 +1046,11 @@ window.onload = function() {
         }
 
         if (code == 10 || code == 13){ // enter or linebreak (carrige return)
-            lineindex[currengPage]++;
+            lineindex[currentPage]++;
 
             fbank.set('scale', scaleModel[getRandomInt(0,3)].value, WX.now + 4, 2);
            // fbank.set('pitch', fbank_pitchset[getRandomInt(0,3)]);
-            if (lineindex[currengPage] == 2 && currengPage == 0){ // the third line 2nd page
+            if (lineindex[currentPage] == 2 && currentPage == 0){ // the third line the first page
                 level_reverb.gain.linearRampToValueAtTime(0.0, context.currentTime )
                 level_reverb.gain.linearRampToValueAtTime(1.0, context.currentTime + 30)
 
@@ -966,7 +1068,7 @@ window.onload = function() {
                 osc.node.detune.linearRampToValueAtTime(900, context.currentTime + 120);
                 osc.node.detune.linearRampToValueAtTime(200, context.currentTime + 240);
             }
-            else if (lineindex[currengPage] == 4 && currengPage == 0){ // thr fifth line page 2
+            else if (lineindex[currentPage] == 4 && currentPage == 0){ // thr fifth line the first page
                 var shaderMaterial = new THREE.ShaderMaterial({
                     uniforms : uniforms,
                     attributes : attributes,
@@ -984,9 +1086,43 @@ window.onload = function() {
 
         }
 
-     books[currengPage].geometry = geo[currengPage][geoindex];
+     books[currentPage].geometry = geo[currentPage][geoindex];
+     // let's play pause until
 
-    }
+if (!pauseFlag || currentPage ==2) return;
+    if ( keycode == 13 || keycode == 32 ){ // run only when enter is pressed
+       pause1Gain.gain.linearRampToValueAtTime(0.0,0.5 + context.currentTime);
+       pause2Gain.gain.linearRampToValueAtTime(0.0,0.5 + context.currentTime);
+       pause3Gain.gain.linearRampToValueAtTime(0.0,0.5 + context.currentTime);
+
+       var pause;
+       var pauseGain;
+       var value = Math.random();
+       if(value<0.33){
+         pause = pause1;
+         pauseGain = pause1Gain;
+       }
+       else if (value<0.66){
+         pause = pause2;
+         pauseGain = pause2Gain;
+       }else {
+         pause = pause3;
+         pauseGain = pause3Gain;
+       }
+
+       //source.playbackRate.value = 1 + Math.random()*2;
+       setTimeout(function(){
+      /*   var pause = context.createBufferSource();
+         pauseGain.gain.value = 0.0;
+         pause.buffer = buffer["pause1"];
+         pause.playbackRate.value = (1 + (keycode%97) / 200*4)*0.15 * (keycode%2+1) ;
+         pause.connect(pauseGain);*/
+         pause.playbackRate.value = (1 + (Math.random()* 26 %97) / 200*4)*0.15 * (Math.random()*2) ;
+         pauseGain.gain.linearRampToValueAtTime(1.0,2.5+ context.currentTime);
+         pauseGain.gain.linearRampToValueAtTime(0.0,5+ context.currentTime);
+       }, 500);
+     }
+   };
 
     var wheelHandler = function(ev) {
         var ds = (ev.detail < 0 || ev.wheelDelta > 0) ? (1/1.01) : 1.01;
@@ -1005,15 +1141,15 @@ window.onload = function() {
         if (down) {
             var dx = ev.clientX - sx;
             var dy = ev.clientY - sy;
-      //      books[currengPage].rotation.x += dy/50.0;
-    //        books[currengPage].rotation.y += dx/50.0;
+      //      books[currentPage].rotation.x += dy/50.0;
+    //        books[currentPage].rotation.y += dx/50.0;
             camera.rotation.y += dx/500 * (camera.fov/45);;
             //camera.rotation.y += dx/500 * (camera.fov/45);;
             camera.rotation.x += dy/500 * (camera.fov/45);
             sx += dx;
             sy += dy;
             //hellow
-            if (drone  && currengPage >= 1)
+            if (drone  && currentPage >= 1)
                 drone.detune(dy);
 /*
             if (filterOn){
@@ -1037,7 +1173,7 @@ window.onload = function() {
             sy = ev.clientY;
        }
 //function ScissorVoice(noteNum, numOsc, oscType, detune){
-        if ( currengPage >= 1){
+        if ( currentPage >= 1){
             if (drone){
                 drone.output.noteOff(0,1,drone.maxGain*2.0);
                 drone.stop(context.currentTime + 1);
@@ -1052,7 +1188,7 @@ window.onload = function() {
     };
     window.onmouseup = function(){
         down = false;
-        if ( drone && currengPage >= 1)
+        if ( drone && currentPage >= 1)
         { // ADSR.prototype.noteOff= function(delay, R, sustainlevel){
             drone.output.noteOff(0,1,drone.maxGain);
             drone.stop(context.currentTime + 1);

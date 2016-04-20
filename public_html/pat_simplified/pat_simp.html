@@ -7,7 +7,7 @@
       <script id="vertex0" type="text/x-glsl-vert">
       uniform float volume;
       varying vec2 vUv;
-  
+
       void main() {
         vec4 fpos = vec4( position, 1.0 );
         vec4 mvPosition = modelViewMatrix * fpos;
@@ -51,13 +51,13 @@
         vec2 uv = vUv;
         //uv.y = uv.y + sin(tan(uv.x) * 1000.0)*0.01 * volume2 + sin(uv.x * 2000.0)*0.001 * volume2;
        //         uv.y = uv.y + timeDomain[i];
-        
+
     //uv.x = uv.x + sin(tan(uv.y) * 1000.0)*0.02 * volume2+ sin(uv.x * 2000.0)*0.01 * volume2;
         vec4 diffuse = texture2D(map, uv);
         gl_FragColor = diffuse;
       }
     </script>
-      
+
 <script id="vertex2" type="text/x-glsl-vert">
       varying vec2 vUv;
     //  varying float xCoord;
@@ -68,7 +68,7 @@
     //  varying float index;
     attribute float strIndex;
          uniform float interval;
-         
+
          mat3 rotateAngleAxisMatrix(float angle, vec3 axis) {
         float c = cos(angle);
         float s = sin(angle);
@@ -122,7 +122,7 @@
         diffuse_white.r = 1.0;
         diffuse_white.g = 1.0;
         diffuse_white.b = 1.0;
-        
+
         vec4 mix_diffuse = mix(diffuse, diffuse_white,0.5-interval/2.0);
 
         gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
@@ -139,7 +139,7 @@
     //  varying float index;
       attribute float strIndex;
       uniform float interval;
-         
+
          mat3 rotateAngleAxisMatrix(float angle, vec3 axis) {
         float c = cos(angle);
         float s = sin(angle);
@@ -162,7 +162,7 @@
       //  fpos.x += -35.0;
         float xCoord = position.x/rightMostXCoord;
         fpos.y = fpos.y + timeDomain[int(xCoord*250.0)] * 12.0;
-        
+
         fpos.z += ((sin(strIndex+time*2.0)))*(1.0-interval) * 1.0;
         fpos.y += ((cos(strIndex+time*2.0)))*(1.0-interval)* 1.0;
         vec4 mvPosition = modelViewMatrix * fpos;
@@ -193,7 +193,7 @@
         diffuse_white.r = 1.0;
         diffuse_white.g = 1.0;
         diffuse_white.b = 1.0;
-        
+
         vec4 mix_diffuse = mix(diffuse, diffuse_white,0.5-interval/2.0);
 
         gl_FragColor = mix_diffuse;//vec4(mix_diffuse.rgb, opacity);*/
@@ -206,13 +206,13 @@
     <script src="Three.js"></script>
     <script src="nfme.js"></script>
     <script src="./waax.min.js"></script>
-        
+
 
     <style>
       html {
         background-color: #fff;
       }
-        
+
       * {
         margin: 0;
         padding: 0;
@@ -230,7 +230,7 @@
 <!--      <div id="container">
 
       </div>
-       /* <div align = center>                   
+       /* <div align = center>
           <button id="playstop">Play</button>
       </div>
 -->
@@ -238,5 +238,3 @@
       <script src="pat_showcase_simplified.js"></script>
 
 </html>
-
-
