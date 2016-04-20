@@ -1269,11 +1269,7 @@ var DEBUG = false,
 
     };
 
-$.fn.extend({
-//    postData :function (url, respondFunc){
-  //      var it = $(this)[0];
-//    },
-    livewritingMessage: function (message, option1, option2, option3) {
+    var livewritingMainfunction = function (message, option1, option2, option3){
         var it;
 
         if ($(this).length==1){
@@ -1428,9 +1424,9 @@ $.fn.extend({
             return getActionData(it);
         }
         return;
-
     }
-});
+    
+    return livewritingMainfunction;
 }(jQuery));
 
 // Export for node
