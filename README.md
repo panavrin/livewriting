@@ -9,6 +9,8 @@ Please contact snaglee@umich.edu for more detail.
 
 # history
 
+0.2.2 (Apr. 20 2016)
+* npm module-fy
 
 0.2.0 (Feb. 22 2016)
 * Ace editor extended.

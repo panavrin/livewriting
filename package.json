@@ -1,6 +1,6 @@
 {
   "name": "livewriting",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Live Writing - Asynchrnous Playback of Writing and Programming",
   "main": "index.js",
   "scripts": {
