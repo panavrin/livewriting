@@ -6,8 +6,11 @@ All rights reserved.
 /*jslint browser: true*/
 /*global $, jQuery, alert*/
 /*global define */
-var jQuery = require('jquery');
-require('jquery-ui');
+
+if(typeof require != "undefined"){
+  jQuery = require('jquery');
+  require('jquery-ui');
+}
 /*
 (c) Copyright 2014-2015  Sang Won Lee sangwonlee717@gmail.com
 All rights reserved.
@@ -1244,7 +1247,16 @@ var DEBUG = false,
         it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea
         it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:"");
         it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:"");
-        it.value = it.lw_initialText;
+        if(it.lw_type == "codemirror"){
+          it.getDoc().setValue(it.lw_initialText);
+        }
+        else if (it.lw_type == "textarea"){
+          it.value = it.lw_initialText;
+        }
+        else if (it.lw_type == "ace"){
+          it.setValue(it.lw_initialText)
+        }
+
         it.lw_data_index = 0;
         it.lw_data=json_file["action"];
         it.lw_endTime = it.lw_data[it.lw_data.length-1].t;
@@ -1425,7 +1437,7 @@ var DEBUG = false,
         }
         return;
     }
-    
+
     return livewritingMainfunction;
 }(jQuery));
 
