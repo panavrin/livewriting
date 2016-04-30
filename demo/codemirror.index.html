@@ -1,0 +1,47 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>The HTML5 Herald</title>
+  <meta name="description" content="The HTML5 Herald">
+  <meta name="author" content="SitePoint">
+
+
+  <link rel="stylesheet" href="./lib/codemirror/lib/codemirror.css">
+  <link rel=stylesheet href="./lib/codemirror/doc/docs.css">
+  <link rel="stylesheet" type="text/css" href="./lib/jquery-ui.min.css"/>
+
+  <script src="./lib/codemirror/lib/codemirror.js"></script>
+  <script src="./lib/jquery-1.11.1.min.js" type="text/javascript"></script>
+  <script src="./lib/jquery-ui.min.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="../main.css"/>
+  <script src="../index.js"></script>
+</head>
+<body>
+  <div style="width:80%; left:10%; position:absolute">
+    <textarea id=code name=code placeholder="type something here and submit to see the livewriting replay.">
+    </textarea>
+    <div>
+      <button id = "submit">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    var delay;
+    // Initialize CodeMirror editor with a nice html5 canvas demo.
+    var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+      mode: 'text/html'
+    });
+
+    editor.livewriting = livewriting;
+    editor.livewriting("create", "codemirror",{}, "");
+    $("#submit").click(function(){
+      editor.livewriting("playJson", editor.livewriting("returnactiondata"));
+      $("#submit").hide();
+    });
+  </script>
+
+</body>
+</html>
