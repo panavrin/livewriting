@@ -9,6 +9,10 @@ Please contact snaglee@umich.edu for more detail.
 
 # history
 
+0.2.4 (Apr. 29 2016)
+* added demo for ace editor and code mirror
+* fixed some bugs regarding using the editor for both recording and replay.
+
 0.2.2 (Apr. 20 2016)
 * npm module-fy
 

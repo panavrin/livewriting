@@ -23,7 +23,7 @@ else{
   var livewriting = (function ($) {
   "use strict";
 
-  var DEBUG = true,
+  var DEBUG = false,
       INSTANTPLAYBACK = false,
       SLIDER_UPDATE_INTERVAL = 100,
       randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
