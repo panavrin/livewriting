@@ -9,8 +9,8 @@
   display: table;
   position: absolute;;
   bottom: 40px;
-  width: 80%;
-  left: 10%;
+  width: 90%;
+  left: 5%;
   background: black;
   border-radius: 15px;
   opacity: 1;
@@ -29,14 +29,28 @@
     font-family: Courier New;
     font-weight:normal;
     color:white;
-    background: #333;
+    background: #555;
+    border-radius: 7px;
+}
+.ui-button-text-toggle{
+    background: #777;
+}
+
+.ui-slider-inactive-region{
+    position: absolute;
+    height: 100%;
+    background-color: #fff;
+    -ms-touch-action: none;
+    touch-action: none;
 }
 
 .lw_toolbar_button{
   border:none;
   padding:0em;
+  border-radius: 10px;
 }
-div.livewriting_navbar_speed{
+
+div.livewriting_navbar_functions{
   display: table-cell;
   vertical-align: middle;
   text-align: center;
@@ -50,15 +64,18 @@ div.livewriting_navbar_buttons_left{
   vertical-align: middle;
   text-align: center;
   width: 25%;
-  min-width: 240px;
+  min-width: 280px;
   margin:auto;
   color:white;
   padding:5px;
 }
+
 div.livewriting_slider{
   width: 90%;
   margin: 0px 5% 0px 5%;
+  background: #616161;
 }
+
 div.livewriting_slider_wrapper{
   display: table-cell;
   vertical-align: middle;

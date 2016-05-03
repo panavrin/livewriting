@@ -6,26 +6,33 @@ All rights reserved.
 /*jslint browser: true*/
 /*global $, jQuery, alert*/
 /*global define */
-
+var DEBUG = false;
 /* ****
 live writing requires jQuery and jQuery-ui
 */
 if(typeof require != "undefined"){
-  jQuery = require('jquery');
-  require('jquery-ui');
+  try {
+    jQuery = require('jquery');
+    require('jquery-ui');
+  }
+  catch (e) {
+    if (DEBUG) console.error("require error. ")
+  }
 }
 
 if ( typeof jQuery == "undefined"){
-  console.error("Live Writing API requires jQuery.")
+  if(DEBUG)console.error("Live Writing API requires jQuery.")
 }
 else{
+  if(DEBUG)console.log("jQuery detected live writing running ");
 
   var livewriting = (function ($) {
   "use strict";
 
-  var DEBUG = false,
-      INSTANTPLAYBACK = false,
+      var INSTANTPLAYBACK = false,
       SLIDER_UPDATE_INTERVAL = 100,
+      INACTIVE_SKIP_THRESHOLD = 3000,
+      SKIP_RESUME_WARMUP_TIME = 1000,
       randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
       keyup_debug_color_index=0,
       keydown_debug_color_index=0,
@@ -500,6 +507,8 @@ else{
         var startTime = it.lw_startTime;
         var currentTime = (new Date()).getTime();
         var nextEventInterval = startTime + it.lw_data[it.lw_data_index]["t"]/it.lw_playback -  currentTime;
+        if(DEBUG)console.log("nextEventInterval : " + nextEventInterval);
+
 
         //if(DEBUG)console.log("start:" + startTime + " time: "+ currentTime+ " interval:" + nextEventInterval + " currentData:",JSON.stringify(it.lw_data[0]));
         // let's catch up some of the old changes.
@@ -508,9 +517,20 @@ else{
           it.lw_triggerPlay(false, true);
           nextEventInterval = startTime + it.lw_data[it.lw_data_index]["t"]/it.lw_playback -  currentTime;
         }
+
+        if(it.lw_skip_inactive && nextEventInterval > INACTIVE_SKIP_THRESHOLD){
+          if(DEBUG)console.log("skipping inactive part : " + nextEventInterval);
+          nextEventInterval = SKIP_RESUME_WARMUP_TIME;
+          it.lw_startTime = currentTime - it.lw_data[it.lw_data_index]["t"]/it.lw_playback  + nextEventInterval;
+          it.lw_skipping = true;
+        }
+
         if (INSTANTPLAYBACK) nextEventInterval = 0;
          // recurring trigger
-        it.lw_next_event = setTimeout(function(){it.lw_triggerPlay(false);}, nextEventInterval);
+        it.lw_next_event = setTimeout(function(){
+          it.lw_skipping = false;
+          it.lw_triggerPlay(false);
+        }, nextEventInterval);
       },
       triggerPlayCodeMirrorFunc = function(reverse, skipSchedule){
           var it = this;
@@ -922,7 +942,12 @@ else{
         };
         $("#lw_toolbar_play" ).button( "option", options );
       },
-      configureToolbar= function(it){
+      configureToolbar= function(it, navbar){
+        navbar.draggable(); // require jquery ui
+        navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button><button id="lw_toolbar_skip" class = "lw_toolbar_button">skip inactive parts</button></div>')
+        navbar.append('<div id="lw_toolbar" class="livewriting_navbar_functions"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
+        navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
+
         $("#lw_toolbar").toggleClass(".ui-widget-header");
         $( "#lw_toolbar_beginning" ).button({
           text: false,
@@ -989,6 +1014,24 @@ else{
         }).click(function(){
           sliderGoToEnd(it);
         });
+
+        $("#lw_toolbar_skip").button({
+          text:false,
+          icons:{
+            primary:"ui-icon-arrowreturnthick-1-n"
+          }
+        }).click(function(e){
+          it.lw_skip_inactive = !it.lw_skip_inactive;
+          $("#lw_toolbar_skip .ui-button-text").toggleClass("ui-button-text-toggle");
+          if(it.lw_skip_inactive){
+            clearTimeout(it.lw_next_event);
+            it.lw_scheduleNextEvent();
+            $(".ui-slider-inactive-region").css("background-color", "#ccc");
+          }
+          else{
+            $(".ui-slider-inactive-region").css("background-color", "#fff");
+          }
+        });
       },
       sliderEventHandler = function(it,value){
         var time  = value ;
@@ -1029,45 +1072,30 @@ else{
         if(DEBUG) console.log("slider end time : " + end_time);
         // ending Time
         if ( it.lw_type == "ace"){
+          if($('.ace_editor').length>1){
+            if(DEBUG) console.error("For now live writing does not support multiple editors.");
+          }
           $('.ace_editor').after("<div class = 'livewriting_navbar'></div>");
-          var navbar = $('.livewriting_navbar');
-          navbar.draggable(); // require jquery ui
-          navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button></div>')
-          navbar.append('<div id="lw_toolbar" class="livewriting_navbar_speed"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
-          navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
 
-          configureToolbar(it);
-          var slider  = $('.livewriting_slider').slider({
-            min: 0,
-            max : end_time + 1,
-            slide: function(event,ui){
-              sliderEventHandler(it,ui.value);
-            }
-          });
-          $(".livewriting_slider").slider("value",0);
         }else if ( it.lw_type == "codemirror"){
-            if($('.CodeMirror').length>1){
-              if(DEBUG) console.error("For now live writing does not support multiple editors.");
-            }
-            $('.CodeMirror').after("<div class = 'livewriting_navbar'></div>");
-            var navbar = $('.livewriting_navbar');
-            navbar.draggable(); // require jquery ui
+          if($('.CodeMirror').length>1){
+            if(DEBUG) console.error("For now live writing does not support multiple editors.");
+          }
+          $('.CodeMirror').after("<div class = 'livewriting_navbar'></div>");
 
-            navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button></div>')
-            navbar.append('<div id="lw_toolbar" class="livewriting_navbar_speed"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
-            navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
+        } // end of codemirror.
+        var navbar = $('.livewriting_navbar');
 
-            configureToolbar(it);
+        configureToolbar(it, navbar);
+        var slider  = $('.livewriting_slider').slider({
+          min: 0,
+          max : end_time + 1,
+          slide: function(event,ui){
+            sliderEventHandler(it,ui.value);
+          }
+        });
+        $(".livewriting_slider").slider("value",0);
 
-            var slider = $('.livewriting_slider').slider({
-              min: 0,
-              max : end_time + 1,
-              slide: function(event,ui){
-                sliderEventHandler(it,ui.value);
-              }
-            });
-            $(".livewriting_slider").slider("value",0);
-          } // end of ace.
       },
       createLiveWritingTextArea= function(it, type, options, initialValue){
 
@@ -1097,6 +1125,8 @@ else{
               it.lw_REDO_TRIGGER = false;
               it.lw_PASTE_TRIGGER = false;
               it.lw_CUT_TRIGGER = false;
+              it.lw_skip_inactive = false;
+              it.lw_skipping= false;
               //code to be inserted here
               it.lw_getCursorTextAreaPosition = getCursorTextAreaPosition;
               it.userInputRespond = {};
@@ -1245,6 +1275,7 @@ else{
             it.lw_triggerPlay = triggerPlayAceFunc;
             it.lw_ace_Range = ace.require("ace/range").Range;
             it.setReadOnly(true);
+            it.$blockScrolling = Infinity;
         }
 
 // de-register event handler.
@@ -1282,41 +1313,61 @@ else{
 
         it.focus();
 
-          if(DEBUG)console.log(it.lw_settings.name);
-          it.lw_version = json_file["version"];
-          it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
-          it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea
-          it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:"");
-          it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:"");
-          if(it.lw_type == "codemirror"){
-            it.setValue(it.lw_initialText);
-          }
-          else if (it.lw_type == "textarea"){
-            it.value = it.lw_initialText;
-          }
-          else if (it.lw_type == "ace"){
-            it.setValue(it.lw_initialText)
-          }
+        if(DEBUG)console.log(it.lw_settings.name);
+        it.lw_version = json_file["version"];
+        it.lw_playback = (json_file["playback"]?json_file["playback"]:1);
+        it.lw_type = (json_file["editor_type"]?json_file["editor_type"]:"textarea"); // for data before the version 3 it has been only used for textarea
+        it.lw_finaltext = (json_file["finaltext"]?json_file["finaltext"]:"");
+        it.lw_initialText = (json_file["initialtext"]?json_file["initialtext"]:"");
+        if(it.lw_type == "codemirror"){
+          it.setValue(it.lw_initialText);
+        }
+        else if (it.lw_type == "textarea"){
+          it.value = it.lw_initialText;
+        }
+        else if (it.lw_type == "ace"){
+          it.setValue(it.lw_initialText)
+        }
 
-          it.lw_data_index = 0;
-          it.lw_data=json_file["action"];
-          it.lw_endTime = it.lw_data[it.lw_data.length-1].t;
-          //it.lw_endTime = json_file.localEndtime - json_file.localStarttime;
-      //    if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
-          if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" );
+        it.lw_data_index = 0;
+        it.lw_data=json_file["action"];
+        it.lw_endTime = it.lw_data[it.lw_data.length-1].t;
+        //it.lw_endTime = json_file.localEndtime - json_file.localStarttime;
+    //    if (it.lw_version<=3)data = (data?data:json_file["data"]); // this is for data before version 3
+        if(DEBUG)console.log(it.name + "play response recieved in version("+it.version+")\n" );
 
 
 
-          var currTime = (new Date()).getTime();
-          it.lw_startTime = currTime;
-          createNavBar(it);
-          if(it.lw_type == "ace"){
-            it.session.getMode().getNextLineIndent = function(){return "";}
-            it.session.getMode().checkOutdent = function(){return false;}
+        var currTime = (new Date()).getTime();
+        it.lw_startTime = currTime;
+        createNavBar(it);
+        if(it.lw_type == "ace"){
+          it.session.getMode().getNextLineIndent = function(){return "";}
+          it.session.getMode().checkOutdent = function(){return false;}
+        }
+        livewritingResume(it);
+        var startTime = currTime + it.lw_data[0]['t']/it.lw_playback;
+        if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + it.lw_data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(it.lw_data[0]));
+        // let's draw inactive region.
+        var total_length = it.lw_data[it.lw_data.length-1]["t"]+1;
+        var prevStartTime = 0
+        for (var i=0; i< it.lw_data.length; i++){
+          var starting_time = it.lw_data[i]['t'];
+          if(it.lw_data[i]['t'] - prevStartTime> INACTIVE_SKIP_THRESHOLD){
+
+            var width =(it.lw_data[i]['t'] - prevStartTime ) / total_length;
+            if (width < 0.001) { // 0.001 means  1 px when the page width is 1000
+              continue;
+            }
+            var inactive_region = $('<div></div>');
+            inactive_region.css("left", (prevStartTime / total_length * 100.0) + "%");
+            inactive_region.css("width", (width * 100.0) + "%");
+            inactive_region.addClass("ui-slider-inactive-region");
+            $(".livewriting_slider").append(inactive_region);
           }
-          livewritingResume(it);
-          var startTime = currTime + it.lw_data[0]['t']/it.lw_playback;
-          if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + it.lw_data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(it.lw_data[0]));
+          prevStartTime = it.lw_data[i]['t'];
+        }
+
 
       };
 
