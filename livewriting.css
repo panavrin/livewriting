@@ -6,7 +6,7 @@
 
 .livewriting_navbar{
   opacity:0.5;
-  display: table;
+/*  display: table;*/
   position: absolute;;
   bottom: 40px;
   width: 90%;
@@ -26,14 +26,14 @@
 }
 
 .ui-button-text{
-    font-family: Courier New;
-    font-weight:normal;
-    color:white;
-    background: #555;
-    border-radius: 7px;
+    font-family: sans-serif!important;
+    font-weight:normal!important;
+    color:white!important;
+    background: #555!important;
+    border-radius: 7px!important;
 }
 .ui-button-text-toggle{
-    background: #777;
+    background: #960707!important;
 }
 
 .ui-slider-inactive-region{
@@ -48,41 +48,67 @@
   border:none;
   padding:0em;
   border-radius: 10px;
+  font-size: 0.9em!important;
+  margin-right: 3px;
 }
 
-div.livewriting_navbar_functions{
-  display: table-cell;
-  vertical-align: middle;
-  text-align: center;
-  width: 5%;
-  margin:auto;
-  color:white;
-  padding:5px;
+div.livewriting_navbar_buttons_right{
+  right: 3%;
+  float: right;
+  position: relative;
 }
 div.livewriting_navbar_buttons_left{
-  display: table-cell;
-  vertical-align: middle;
-  text-align: center;
-  width: 25%;
-  min-width: 280px;
-  margin:auto;
-  color:white;
-  padding:5px;
+  left: 3%;
+  float: left;
+  position: relative;
 }
-
 div.livewriting_slider{
-  width: 90%;
-  margin: 0px 5% 0px 5%;
-  background: #616161;
+  width: 94%;
+  margin: 15px 3% 10px 3%;
+  text-align: center;
+  background: #E4C3C3;
+  height: 0.5em;
+  left: 0%;
+}
+#livewriting_histogram{
+  position: absolute;
+  width: 100%;
+  height: 50px;
+  left: -1px;
+  top: -21px;
+  z-index: -10;
+  display:none;
+}
+#lw_playback_slider{
+  display:none;
+  position:absolute;
+  right:-20px;
+  top:-25px;
 }
 
 div.livewriting_slider_wrapper{
-  display: table-cell;
   vertical-align: middle;
   text-align: center;
-  width: 70%;
+  width: 100%;
 }
 
+.histogram_slider_wrapper{
+  padding: 12px 0 15px 0;
+}
+div.livewriting_toolbar_wrapper{
+  vertical-align: middle;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 50px;
+  color: white;
+}
+
+.livewriting_slider .ui-slider-handle {
+  width: 0.5em!important;
+  height: 1.4em!important;
+  top: -.5em!important;
+  margin-left: -.25em!important;
+}
 div.livewriting_navbar_buttons_fastbackward{
   display: table-cell;
   width: 7%;

@@ -9,9 +9,12 @@ Please contact snaglee@umich.edu for more detail.
 
 # history
 
+0.2.6 (May 4, 2016)
+* edit visualization.(plus in green / minus in red) 
+
 0.2.5 (May 3, 2016)
 * skipping inactive parts button
-* inactive parts visualization. 
+* inactive parts visualization.
 
 0.2.4 (Apr. 29, 2016)
 * added demo for ace editor and code mirror

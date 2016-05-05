@@ -31,9 +31,12 @@ else{
 
       var INSTANTPLAYBACK = false,
       SLIDER_UPDATE_INTERVAL = 100,
-      INACTIVE_SKIP_THRESHOLD = 3000,
+      INACTIVE_SKIP_THRESHOLD = 2000,
       SKIP_RESUME_WARMUP_TIME = 1000,
       randomcolor = [ "#c0c0f0", "#f0c0c0", "#c0f0c0", "#f090f0", "#90f0f0", "#f0f090"],
+      lw_histogram_bin_number = 480,
+      canvas_histogram_width = 480,
+      canvas_histogram_height = 50,
       keyup_debug_color_index=0,
       keydown_debug_color_index=0,
       keypress_debug_color_index=0,
@@ -518,17 +521,15 @@ else{
           nextEventInterval = startTime + it.lw_data[it.lw_data_index]["t"]/it.lw_playback -  currentTime;
         }
 
-        if(it.lw_skip_inactive && nextEventInterval > INACTIVE_SKIP_THRESHOLD){
+        if(it.lw_skip_inactive && nextEventInterval * it.lw_playback > INACTIVE_SKIP_THRESHOLD){
           if(DEBUG)console.log("skipping inactive part : " + nextEventInterval);
-          nextEventInterval = SKIP_RESUME_WARMUP_TIME;
+          nextEventInterval = SKIP_RESUME_WARMUP_TIME / it.lw_playback;
           it.lw_startTime = currentTime - it.lw_data[it.lw_data_index]["t"]/it.lw_playback  + nextEventInterval;
-          it.lw_skipping = true;
         }
 
         if (INSTANTPLAYBACK) nextEventInterval = 0;
          // recurring trigger
         it.lw_next_event = setTimeout(function(){
-          it.lw_skipping = false;
           it.lw_triggerPlay(false);
         }, nextEventInterval);
       },
@@ -943,12 +944,55 @@ else{
         $("#lw_toolbar_play" ).button( "option", options );
       },
       configureToolbar= function(it, navbar){
-        navbar.draggable(); // require jquery ui
-        navbar.append('<div id="lw_toolbar" class="livewriting_navbar_buttons_left"><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_slower" class = "lw_toolbar_button">slower</button><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_faster" class = "lw_toolbar_button">faster</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button><button id="lw_toolbar_skip" class = "lw_toolbar_button">skip inactive parts</button></div>')
-        navbar.append('<div id="lw_toolbar" class="livewriting_navbar_functions"><span id="livewriting_speed">'+it.lw_playback+'</span>&nbsp;X</div>')
+        navbar.draggable(); // this line requires jquery ui
         navbar.append("<div class='livewriting_slider_wrapper'><div class = 'livewriting_slider'></div></div>");
+        navbar.append('<div class="livewriting_toolbar_wrapper"> <div class="livewriting_navbar_buttons_left"><button id="lw_toolbar_play" class = "lw_toolbar_button">pause</button><button id="lw_toolbar_beginning" class = "lw_toolbar_button">go to beginning</button><button id="lw_toolbar_end" class = "lw_toolbar_button">go to end</button></div><div class="livewriting_navbar_buttons_right"><div><button id="lw_toolbar_stat" class = "lw_toolbar_button">Show Histogram</button><button id="lw_toolbar_skip" class = "lw_toolbar_button">skip inactive parts</button><button id="lw_toolbar_setting" class = "lw_toolbar_button">settings</button><button class = "lw_toolbar_button livewriting_speed" >'+it.lw_playback+'&nbsp;X</button><button class = "lw_toolbar_button lw_toolbar_speed">adjust the speed</button><div id="lw_playback_slider"></div></div> </div></div>');
 
-        $("#lw_toolbar").toggleClass(".ui-widget-header");
+        $(".livewriting_slider").append("<canvas id='livewriting_histogram' width="+canvas_histogram_width+" height="+canvas_histogram_height+"></canvas>");
+
+        $( ".livewriting_speed" ).button();
+        $( ".lw_toolbar_speed" ).button({
+          text: false,
+          icons: {
+            primary: "ui-icon-triangle-1-s"
+          }
+        }).click(function(){
+          $("#lw_playback_slider").toggle();
+        });
+
+        $( "#lw_toolbar_setting" ).button({
+          text: false,
+          icons: {
+            primary: "ui-icon-gear"
+          }
+        }).click(function(){
+          console.log("for now, nothing happens")
+        });
+
+
+        $("#lw_playback_slider").slider({
+          orientation : "vertical",
+          range: "min",
+          min: -20,
+          max: 60,
+          value: 0,
+          slide: function( event, ui ){
+            var value  = $("#lw_playback_slider").slider("value")/10.0;
+
+            it.lw_playback = Math.pow(2.0, value) ;
+
+            var time  = $(".livewriting_slider").slider("value");
+            var currentTime = (new Date()).getTime();
+            it.lw_startTime = currentTime - time/it.lw_playback;
+
+            $(".livewriting_speed>span").text(it.lw_playback.toFixed(1) + " X");
+          },
+          stop: function(event, ui) {
+            $("#lw_playback_slider").hide();
+          }
+        });
+
+        $(".livewriting_toolbar_wrapper").toggleClass(".ui-widget-header");
         $( "#lw_toolbar_beginning" ).button({
           text: false,
           icons: {
@@ -973,7 +1017,7 @@ else{
           var currentTime = (new Date()).getTime();
           it.lw_startTime = currentTime - time/it.lw_playback;
 
-          $("#livewriting_speed").text(it.lw_playback);
+          $(".livewriting_speed").text(it.lw_playback);
         });
         $( "#lw_toolbar_play" ).button({
           text: false,
@@ -1004,7 +1048,7 @@ else{
           var currentTime = (new Date()).getTime();
           it.lw_startTime = currentTime - time/it.lw_playback;
 
-          $("#livewriting_speed").text(it.lw_playback);
+          $(".livewriting_speed").text(it.lw_playback);
         });
         $( "#lw_toolbar_end" ).button({
           text: false,
@@ -1013,6 +1057,17 @@ else{
           }
         }).click(function(){
           sliderGoToEnd(it);
+        });
+
+        $("#lw_toolbar_stat").button({
+          text:false,
+          icons:{
+            primary:"ui-icon-image"
+          }
+        }).click(function(e){
+          $("#lw_toolbar_stat .ui-button-text").toggleClass("ui-button-text-toggle");
+          $("#livewriting_histogram").toggle();
+          $("div.livewriting_slider_wrapper").toggleClass("histogram_slider_wrapper");
         });
 
         $("#lw_toolbar_skip").button({
@@ -1027,9 +1082,11 @@ else{
             clearTimeout(it.lw_next_event);
             it.lw_scheduleNextEvent();
             $(".ui-slider-inactive-region").css("background-color", "#ccc");
+            $("div.livewriting_slider").css("background","#F49C25");
           }
           else{
             $(".ui-slider-inactive-region").css("background-color", "#fff");
+            $("div.livewriting_slider").css("background","#D4C3C3");
           }
         });
       },
@@ -1126,7 +1183,6 @@ else{
               it.lw_PASTE_TRIGGER = false;
               it.lw_CUT_TRIGGER = false;
               it.lw_skip_inactive = false;
-              it.lw_skipping= false;
               //code to be inserted here
               it.lw_getCursorTextAreaPosition = getCursorTextAreaPosition;
               it.userInputRespond = {};
@@ -1150,6 +1206,8 @@ else{
                   it.lw_writemode = true;
 
                   if ( type == "textarea"){
+                    it.value = it.lw_initialText;
+
                       it.onkeyup = keyUpTextareaFunc;
                       it.onkeypress = keyPressTextareaFunc;
                       it.onkeydown = keyDownTextareaFunc
@@ -1164,11 +1222,14 @@ else{
                       it.oninput = inputTextareaFunc;
                   }
                   else if (type == "codemirror"){
-                      it.on("change", changeCodeMirrorFunc);
-                      it.on("cursorActivity", cursorCodeMirrorFunc);
-                      it.on("scroll", viewPortchangeCodeMirrorFunc)
+                    it.setValue(it.lw_initialText);
+                    it.on("change", changeCodeMirrorFunc);
+                    it.on("cursorActivity", cursorCodeMirrorFunc);
+                    it.on("scroll", viewPortchangeCodeMirrorFunc)
                   }
                   else if (type == "ace"){
+                    it.setValue(it.lw_initialText)
+
                     it.on("change", changeAceFunc);
                     //it.on("changeCursor", cursorAceFunc);
                     it.on("changeSelection", cursorAceFunc);
@@ -1180,15 +1241,7 @@ else{
                     });
                   }
 
-                  if(it.lw_type == "codemirror"){
-                    it.setValue(it.lw_initialText);
-                  }
-                  else if (it.lw_type == "textarea"){
-                    it.value = it.lw_initialText;
-                  }
-                  else if (it.lw_type == "ace"){
-                    it.setValue(it.lw_initialText)
-                  }
+
 
                   it.onUserInput = userinputTextareaFunc;
                   it.lw_writemode = true;
@@ -1265,6 +1318,73 @@ else{
               alert("LiveWritingAPI: play failed: " + jqXHR.responseText );
           });
       },
+      histValue = function(x){
+        return 0.3 + 0.7 * Math.pow(2*x - Math.pow(x,2),0.5);
+      }
+      ,drawHistogram = function(it){
+        if(it.lw_type!="ace" && it.lw_type!="codemirror"){
+          console.error("histogram only supports ace editor / codemirror for now. ");
+          return;
+        }
+        var c = document.getElementById("livewriting_histogram");
+        var ctx = c.getContext("2d");
+
+        var total_length = it.lw_data[it.lw_data.length-1]["t"]+1;
+        var inserted = new Array(lw_histogram_bin_number).fill(0);
+        var removed = new Array(lw_histogram_bin_number).fill(0);
+        var maxChange = -1;
+
+        for (var i=0; i< it.lw_data.length; i++){
+          if(it.lw_data[i].p != "c")
+            continue;
+          var starting_time = it.lw_data[i]['t'];
+          var index = Math.round(starting_time / total_length * lw_histogram_bin_number);
+          var length = -1;
+          if(it.lw_type=="ace"){
+            if (it.lw_data[i].d.action == "insert")
+            {
+              length = it.lw_data[i].d.lines.join().length;
+              inserted[index] += length
+            }
+            else if(it.lw_data[i].d.action == "remove"){
+              length = it.lw_data[i].d.lines.join().length;
+              removed[index] += length;
+            }
+          }else if (it.lw_type == "codemirror"){
+            if(it.lw_data[i].d.removed){
+              length = it.lw_data[i].d.removed.join().length;
+              removed[index] += length
+            }
+            if(it.lw_data[i].d.text){
+              length = it.lw_data[i].d.text.join().length;
+              inserted[index] += length;
+            }
+          }
+          if(length > maxChange)
+            maxChange = length;
+        }
+        var bin_size = canvas_histogram_width / lw_histogram_bin_number;
+        if(DEBUG)console.log("binsize:" + bin_size);
+        var value = 0;
+        for (var i=0; i< lw_histogram_bin_number; i++){
+          if(inserted[i]>0){
+            value = histValue(inserted[i]/maxChange);
+            ctx.fillStyle = "#97DB97";
+            ctx.fillRect(bin_size*i,canvas_histogram_height/2 * (1-value),bin_size,canvas_histogram_height/2 * value);
+            if(DEBUG)console.log("i:" + i + ", inserted:" + inserted[i] + " value: " + value);
+          }
+          if(removed[i]>0){
+            value = histValue(removed[i]/maxChange);
+            ctx.fillStyle = "#EB5555";
+            ctx.fillRect(bin_size*i,canvas_histogram_height/2,bin_size,canvas_histogram_height/2* value);
+            if(DEBUG)console.log("i:" + i + ", removed:" + removed[i] + " value: " + value);
+
+          }
+        }
+
+
+      }
+      ,
       playbackbyJson = function(it,json_file){
 
         if(it.lw_type == "codemirror")
@@ -1349,6 +1469,7 @@ else{
         var startTime = currTime + it.lw_data[0]['t']/it.lw_playback;
         if(DEBUG)console.log("1start:" + startTime + " time: "+ currTime  + " interval:" + it.lw_data[0]['t']/it.lw_playback+ " currentData:",JSON.stringify(it.lw_data[0]));
         // let's draw inactive region.
+        drawHistogram(it);
         var total_length = it.lw_data[it.lw_data.length-1]["t"]+1;
         var prevStartTime = 0
         for (var i=0; i< it.lw_data.length; i++){
