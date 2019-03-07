@@ -13,3 +13,5 @@ public_html/text-demo/*
 public_html/pat_simplified/*
 
 *.zip
+*.DS_Store
+demo/sampleData/replay3.js

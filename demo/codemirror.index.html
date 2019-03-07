@@ -18,6 +18,9 @@
   <script src="./lib/jquery-ui.min.js" type="text/javascript"></script>
   <link rel="stylesheet" type="text/css" href="../livewriting.css"/>
   <script src="../index.js"></script>
+  <script src="./sampleData/replay1.js"></script>
+  <script src="./sampleData/replay2.js"></script>
+  <script src="./sampleData/replay3.js"></script>
 </head>
 <body>
   <div style="width:80%; left:10%; position:absolute">
@@ -25,6 +28,15 @@
     </textarea>
     <div>
       <button id = "submit">Submit</button>
+    </div>
+    <div>
+      <button class = "replay" value=1>Replay Sample 1</button>
+    </div>
+    <div>
+      <button class = "replay" value=2>Replay Sample 2</button>
+    </div>
+    <div>
+      <button class = "replay" value=3>Replay Sample 3</button>
     </div>
   </div>
 
@@ -39,8 +51,23 @@
     editor.livewriting("create", "codemirror",{}, "");
     $("#submit").click(function(){
       editor.livewriting("playJson", editor.livewriting("returnactiondata"));
-      $("#submit").hide();
     });
+
+    $(".replay").click(function(){
+//      $.getScript("./sampleData/replay1.js", function(){
+        if(this.value == "1"){
+          editor.livewriting("playJson", sample1);
+        }
+        else if (this.value == "2"){
+          editor.livewriting("playJson", sample2);
+        }
+        else if (this.value == "3"){
+          editor.livewriting("playJson", sample3);
+        }
+        $("#submit").hide();
+        $(".replay").hide();
+  //    })
+    })
   </script>
 
 </body>
